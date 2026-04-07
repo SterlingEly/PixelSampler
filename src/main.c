@@ -7,11 +7,12 @@
 
 // ============================================================
 // FONT TABLE  (alphabetical by family, then size)
+// LECO 60 sizes only exist in emery/gabbro SDK headers.
 // ============================================================
 typedef struct {
-  const char *name;   // display name shown in list
-  const char *key;    // FONT_KEY_* string
-  const char *tag;    // short tag shown as subtitle, e.g. "GOTHIC_14"
+  const char *name;
+  const char *key;
+  const char *tag;
 } SamplerFont;
 
 static const SamplerFont s_fonts[] = {
@@ -40,8 +41,11 @@ static const SamplerFont s_fonts[] = {
   { "LECO 36 Bold",             FONT_KEY_LECO_36_BOLD_NUMBERS,       "LECO_36_BOLD_NUMBERS"       },
   { "LECO 38 Bold",             FONT_KEY_LECO_38_BOLD_NUMBERS,       "LECO_38_BOLD_NUMBERS"       },
   { "LECO 42",                  FONT_KEY_LECO_42_NUMBERS,            "LECO_42_NUMBERS"            },
-  { "LECO 60 AM/PM *",          FONT_KEY_LECO_60_NUMBERS_AM_PM,      "LECO_60_NUMBERS_AM_PM"      },
-  { "LECO 60 Bold AM/PM *",     FONT_KEY_LECO_60_BOLD_NUMBERS_AM_PM, "LECO_60_BOLD_NUMBERS_AM_PM" },
+#if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
+  // LECO 60 sizes: emery/gabbro SDK only
+  { "LECO 60 AM/PM",            FONT_KEY_LECO_60_NUMBERS_AM_PM,      "LECO_60_NUMBERS_AM_PM"      },
+  { "LECO 60 Bold AM/PM",       FONT_KEY_LECO_60_BOLD_NUMBERS_AM_PM, "LECO_60_BOLD_NUMBERS_AM_PM" },
+#endif
   // Roboto
   { "Roboto Bold 49",           FONT_KEY_ROBOTO_BOLD_SUBSET_49,      "ROBOTO_BOLD_SUBSET_49"      },
   { "Roboto Condensed 21",      FONT_KEY_ROBOTO_CONDENSED_21,        "ROBOTO_CONDENSED_21"        },
@@ -62,7 +66,7 @@ static const char *s_samples[] = {
 // COLOR TABLE
 // ============================================================
 typedef struct {
-  const char *name;   // full GColor name
+  const char *name;
   const char *hex;
   uint8_t r, g, b;   // 2-bit channels (0..3)
   GColor   color;
@@ -71,7 +75,6 @@ typedef struct {
 #define PC(nm, hx, r2, g2, b2) \
   { nm, hx, r2, g2, b2, {.argb = (uint8_t)(0b11000000 | ((r2)<<4) | ((g2)<<2) | (b2))} }
 
-// 64-color spectrum order (color platforms only)
 #if defined(PBL_COLOR)
 static const SamplerColor s_colors[] = {
   // Achromatic
@@ -154,8 +157,7 @@ static const SamplerColor s_colors[] = {
 };
 #define NUM_COLORS ((int)(sizeof(s_colors) / sizeof(s_colors[0])))
 
-#else  // B&W platforms: only 4 actual levels
-
+#else  // B&W: only 4 actual levels
 static const SamplerColor s_colors[] = {
   PC("GColorBlack",     "#000000", 0,0,0),
   PC("GColorDarkGray",  "#555555", 1,1,1),
@@ -163,7 +165,6 @@ static const SamplerColor s_colors[] = {
   PC("GColorWhite",     "#ffffff", 3,3,3),
 };
 #define NUM_COLORS 4
-
 #endif  // PBL_COLOR
 
 // ============================================================
@@ -235,7 +236,7 @@ static void font_canvas_draw(Layer *layer, GContext *ctx) {
   graphics_context_set_stroke_color(ctx, GColorDarkGray);
   graphics_draw_line(ctx, GPoint(0, y - 4), GPoint(w, y - 4));
 
-  // Sample strings
+  // Sample strings in specimen font
   graphics_context_set_text_color(ctx, GColorBlack);
   for (int i = 0; i < NUM_SAMPLES; i++) {
     GSize sz = graphics_text_layout_get_content_size(
@@ -349,7 +350,6 @@ static void color_fill_draw(Layer *layer, GContext *ctx) {
 #if defined(PBL_COLOR)
   graphics_context_set_fill_color(ctx, c->color);
 #else
-  // B&W: map to the actual gray level
   GColor fill = (c->r == 0 && c->g == 0 && c->b == 0) ? GColorBlack :
                 (c->r == 1 && c->g == 1 && c->b == 1) ? GColorDarkGray :
                 (c->r == 2 && c->g == 2 && c->b == 2) ? GColorLightGray :
@@ -570,7 +570,7 @@ static void main_menu_draw_row(GContext *ctx, const Layer *cell,
                                MenuIndex *idx, void *cbctx) {
   static const char *titles[] = { "Fonts", "Colors", "Platform" };
   static const char *subs[] = {
-    "25 system fonts",
+    "System font specimen",
 #if defined(PBL_COLOR)
     "64-color palette",
 #else

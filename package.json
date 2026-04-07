@@ -1,0 +1,30 @@
+{
+    "author": "Sterling Ely",
+    "dependencies": {},
+    "keywords": [],
+    "name": "pixel-sampler",
+    "pebble": {
+        "capabilities": [],
+        "displayName": "Pixel Sampler",
+        "enableMultiJS": false,
+        "projectType": "native",
+        "resources": {
+            "media": []
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk",
+            "diorite",
+            "emery",
+            "flint",
+            "gabbro"
+        ],
+        "uuid": "a7f3c821-4d9e-4b15-8e62-1f0d5a3c7b94",
+        "watchapp": {
+            "watchface": false
+        }
+    },
+    "version": "1.0.0"
+}

@@ -1,12 +1,10 @@
 #include <pebble.h>
 
 // ============================================================
-// Pixel Sampler — main.c
-// v1.2
+// Pixel Sampler — main.c  v1.3
 // ============================================================
 
-// Round screens need horizontal insets to stay inside the circle.
-// 18px each side is safe for 180px chalk; 20px for 260px gabbro.
+// Horizontal inset for round screens to stay inside the circle
 #if defined(PBL_ROUND)
 #  define ROUND_INSET 18
 #else
@@ -14,48 +12,41 @@
 #endif
 
 // ============================================================
-// FONT TABLE  (alphabetical by family, then size)
-// LECO 60 sizes only exist in emery/gabbro SDK headers.
+// FONT TABLE
 // ============================================================
 typedef struct {
-  const char *name;
-  const char *key;
-  const char *tag;
+  const char *name;   // user-facing name, e.g. "Gothic 14 Bold"
+  const char *key;    // FONT_KEY_* string (for fonts_get_system_font)
 } SamplerFont;
 
 static const SamplerFont s_fonts[] = {
-  // Bitham
-  { "Bitham 30 Black",          FONT_KEY_BITHAM_30_BLACK,            "BITHAM_30_BLACK"            },
-  { "Bitham 34 Med Numbers",    FONT_KEY_BITHAM_34_MEDIUM_NUMBERS,   "BITHAM_34_MEDIUM_NUMBERS"   },
-  { "Bitham 42 Bold",           FONT_KEY_BITHAM_42_BOLD,             "BITHAM_42_BOLD"             },
-  { "Bitham 42 Light",          FONT_KEY_BITHAM_42_LIGHT,            "BITHAM_42_LIGHT"            },
-  { "Bitham 42 Med Numbers",    FONT_KEY_BITHAM_42_MEDIUM_NUMBERS,   "BITHAM_42_MEDIUM_NUMBERS"   },
-  // Droid
-  { "Droid Serif 28 Bold",      FONT_KEY_DROID_SERIF_28_BOLD,        "DROID_SERIF_28_BOLD"        },
-  // Gothic
-  { "Gothic 14",                FONT_KEY_GOTHIC_14,                  "GOTHIC_14"                  },
-  { "Gothic 14 Bold",           FONT_KEY_GOTHIC_14_BOLD,             "GOTHIC_14_BOLD"             },
-  { "Gothic 18",                FONT_KEY_GOTHIC_18,                  "GOTHIC_18"                  },
-  { "Gothic 18 Bold",           FONT_KEY_GOTHIC_18_BOLD,             "GOTHIC_18_BOLD"             },
-  { "Gothic 24",                FONT_KEY_GOTHIC_24,                  "GOTHIC_24"                  },
-  { "Gothic 24 Bold",           FONT_KEY_GOTHIC_24_BOLD,             "GOTHIC_24_BOLD"             },
-  { "Gothic 28",                FONT_KEY_GOTHIC_28,                  "GOTHIC_28"                  },
-  { "Gothic 28 Bold",           FONT_KEY_GOTHIC_28_BOLD,             "GOTHIC_28_BOLD"             },
-  // LECO
-  { "LECO 20 Bold",             FONT_KEY_LECO_20_BOLD_NUMBERS,       "LECO_20_BOLD_NUMBERS"       },
-  { "LECO 26 Bold AM/PM",       FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM, "LECO_26_BOLD_NUMBERS_AM_PM" },
-  { "LECO 28 Light",            FONT_KEY_LECO_28_LIGHT_NUMBERS,      "LECO_28_LIGHT_NUMBERS"      },
-  { "LECO 32 Bold",             FONT_KEY_LECO_32_BOLD_NUMBERS,       "LECO_32_BOLD_NUMBERS"       },
-  { "LECO 36 Bold",             FONT_KEY_LECO_36_BOLD_NUMBERS,       "LECO_36_BOLD_NUMBERS"       },
-  { "LECO 38 Bold",             FONT_KEY_LECO_38_BOLD_NUMBERS,       "LECO_38_BOLD_NUMBERS"       },
-  { "LECO 42",                  FONT_KEY_LECO_42_NUMBERS,            "LECO_42_NUMBERS"            },
+  { "Bitham 30 Black",        FONT_KEY_BITHAM_30_BLACK            },
+  { "Bitham 34 Med Numbers",  FONT_KEY_BITHAM_34_MEDIUM_NUMBERS   },
+  { "Bitham 42 Bold",         FONT_KEY_BITHAM_42_BOLD             },
+  { "Bitham 42 Light",        FONT_KEY_BITHAM_42_LIGHT            },
+  { "Bitham 42 Med Numbers",  FONT_KEY_BITHAM_42_MEDIUM_NUMBERS   },
+  { "Droid Serif 28 Bold",    FONT_KEY_DROID_SERIF_28_BOLD        },
+  { "Gothic 14",              FONT_KEY_GOTHIC_14                  },
+  { "Gothic 14 Bold",         FONT_KEY_GOTHIC_14_BOLD             },
+  { "Gothic 18",              FONT_KEY_GOTHIC_18                  },
+  { "Gothic 18 Bold",         FONT_KEY_GOTHIC_18_BOLD             },
+  { "Gothic 24",              FONT_KEY_GOTHIC_24                  },
+  { "Gothic 24 Bold",         FONT_KEY_GOTHIC_24_BOLD             },
+  { "Gothic 28",              FONT_KEY_GOTHIC_28                  },
+  { "Gothic 28 Bold",         FONT_KEY_GOTHIC_28_BOLD             },
+  { "LECO 20 Bold",           FONT_KEY_LECO_20_BOLD_NUMBERS       },
+  { "LECO 26 Bold AM/PM",     FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM },
+  { "LECO 28 Light",          FONT_KEY_LECO_28_LIGHT_NUMBERS      },
+  { "LECO 32 Bold",           FONT_KEY_LECO_32_BOLD_NUMBERS       },
+  { "LECO 36 Bold",           FONT_KEY_LECO_36_BOLD_NUMBERS       },
+  { "LECO 38 Bold",           FONT_KEY_LECO_38_BOLD_NUMBERS       },
+  { "LECO 42",                FONT_KEY_LECO_42_NUMBERS            },
 #if defined(PBL_PLATFORM_EMERY) || defined(PBL_PLATFORM_GABBRO)
-  { "LECO 60 AM/PM",            FONT_KEY_LECO_60_NUMBERS_AM_PM,      "LECO_60_NUMBERS_AM_PM"      },
-  { "LECO 60 Bold AM/PM",       FONT_KEY_LECO_60_BOLD_NUMBERS_AM_PM, "LECO_60_BOLD_NUMBERS_AM_PM" },
+  { "LECO 60 AM/PM",          FONT_KEY_LECO_60_NUMBERS_AM_PM      },
+  { "LECO 60 Bold AM/PM",     FONT_KEY_LECO_60_BOLD_NUMBERS_AM_PM },
 #endif
-  // Roboto
-  { "Roboto Bold 49",           FONT_KEY_ROBOTO_BOLD_SUBSET_49,      "ROBOTO_BOLD_SUBSET_49"      },
-  { "Roboto Condensed 21",      FONT_KEY_ROBOTO_CONDENSED_21,        "ROBOTO_CONDENSED_21"        },
+  { "Roboto Bold 49",         FONT_KEY_ROBOTO_BOLD_SUBSET_49      },
+  { "Roboto Condensed 21",    FONT_KEY_ROBOTO_CONDENSED_21        },
 };
 #define NUM_FONTS ((int)(sizeof(s_fonts) / sizeof(s_fonts[0])))
 
@@ -79,83 +70,82 @@ typedef struct {
 } SamplerColor;
 
 #define PC(nm, hx, r2, g2, b2) \
-  { nm, hx, r2, g2, b2, {.argb = (uint8_t)(0b11000000 | ((r2)<<4) | ((g2)<<2) | (b2))} }
+  { nm, hx, r2, g2, b2, {.argb=(uint8_t)(0b11000000|((r2)<<4)|((g2)<<2)|(b2))} }
 
 #if defined(PBL_COLOR)
 static const SamplerColor s_colors[] = {
-  PC("GColorBlack",                "#000000", 0,0,0),
-  PC("GColorDarkGray",             "#555555", 1,1,1),
-  PC("GColorLightGray",            "#aaaaaa", 2,2,2),
-  PC("GColorWhite",                "#ffffff", 3,3,3),
-  PC("GColorOxfordBlue",           "#000055", 0,0,1),
-  PC("GColorDukeBlue",             "#0000aa", 0,0,2),
-  PC("GColorBlue",                 "#0000ff", 0,0,3),
-  PC("GColorElectricUltramarine",  "#5500ff", 1,0,3),
-  PC("GColorIndigo",               "#5500aa", 1,0,2),
-  PC("GColorImperialPurple",       "#550055", 1,0,1),
-  PC("GColorVividViolet",          "#aa00ff", 2,0,3),
-  PC("GColorPurple",               "#aa00aa", 2,0,2),
-  PC("GColorJazzberryJam",         "#aa0055", 2,0,1),
-  PC("GColorBulgarianRose",        "#550000", 1,0,0),
-  PC("GColorDarkCandyAppleRed",    "#aa0000", 2,0,0),
-  PC("GColorRed",                  "#ff0000", 3,0,0),
-  PC("GColorFolly",                "#ff0055", 3,0,1),
-  PC("GColorFashionMagenta",       "#ff00aa", 3,0,2),
-  PC("GColorMagenta",              "#ff00ff", 3,0,3),
-  PC("GColorShockingPink",         "#ff55ff", 3,1,3),
-  PC("GColorBrilliantRose",        "#ff55aa", 3,1,2),
-  PC("GColorSunsetOrange",         "#ff5555", 3,1,1),
-  PC("GColorOrange",               "#ff5500", 3,1,0),
-  PC("GColorChromeYellow",         "#ffaa00", 3,2,0),
-  PC("GColorRajah",                "#ffaa55", 3,2,1),
-  PC("GColorMelon",                "#ffaaaa", 3,2,2),
-  PC("GColorRichBrilliantLavender","#ffaaff", 3,2,3),
-  PC("GColorYellow",               "#ffff00", 3,3,0),
-  PC("GColorIcterine",             "#ffff55", 3,3,1),
-  PC("GColorPastelYellow",         "#ffffaa", 3,3,2),
-  PC("GColorArmyGreen",            "#555500", 1,1,0),
-  PC("GColorLimerick",             "#aaaa00", 2,2,0),
-  PC("GColorBrass",                "#aaaa55", 2,2,1),
-  PC("GColorBabyBlueEyes",         "#aaaaff", 2,2,3),
-  PC("GColorSpringBud",            "#aaff00", 2,3,0),
-  PC("GColorInchworm",             "#aaff55", 2,3,1),
-  PC("GColorKellyGreen",           "#55aa00", 1,2,0),
-  PC("GColorBrightGreen",          "#55ff00", 1,3,0),
-  PC("GColorDarkGreen",            "#005500", 0,1,0),
-  PC("GColorIslamicGreen",         "#00aa00", 0,2,0),
-  PC("GColorGreen",                "#00ff00", 0,3,0),
-  PC("GColorScreaminGreen",        "#55ff55", 1,3,1),
-  PC("GColorMayGreen",             "#55aa55", 1,2,1),
-  PC("GColorMalachite",            "#00ff55", 0,3,1),
-  PC("GColorMediumAquamarine",     "#55ffaa", 1,3,2),
-  PC("GColorMintGreen",            "#aaffaa", 2,3,2),
-  PC("GColorJaegerGreen",          "#00aa55", 0,2,1),
-  PC("GColorMidnightGreen",        "#005555", 0,1,1),
-  PC("GColorMediumSpringGreen",    "#00ffaa", 0,3,2),
-  PC("GColorElectricBlue",         "#55ffff", 1,3,3),
-  PC("GColorCeleste",              "#aaffff", 2,3,3),
-  PC("GColorCyan",                 "#00ffff", 0,3,3),
-  PC("GColorTiffanyBlue",          "#00aaaa", 0,2,2),
-  PC("GColorCadetBlue",            "#55aaaa", 1,2,2),
-  PC("GColorVividCerulean",        "#00aaff", 0,2,3),
-  PC("GColorPictonBlue",           "#55aaff", 1,2,3),
-  PC("GColorBlueMoon",             "#0055ff", 0,1,3),
-  PC("GColorCobaltBlue",           "#0055aa", 0,1,2),
-  PC("GColorLiberty",              "#5555aa", 1,1,2),
-  PC("GColorVeryLightBlue",        "#5555ff", 1,1,3),
-  PC("GColorLavenderIndigo",       "#aa55ff", 2,1,3),
-  PC("GColorPurpureus",            "#aa55aa", 2,1,2),
-  PC("GColorRoseVale",             "#aa5555", 2,1,1),
-  PC("GColorWindsorTan",           "#aa5500", 2,1,0),
+  PC("GColorBlack",                "#000000",0,0,0),
+  PC("GColorDarkGray",             "#555555",1,1,1),
+  PC("GColorLightGray",            "#aaaaaa",2,2,2),
+  PC("GColorWhite",                "#ffffff",3,3,3),
+  PC("GColorOxfordBlue",           "#000055",0,0,1),
+  PC("GColorDukeBlue",             "#0000aa",0,0,2),
+  PC("GColorBlue",                 "#0000ff",0,0,3),
+  PC("GColorElectricUltramarine",  "#5500ff",1,0,3),
+  PC("GColorIndigo",               "#5500aa",1,0,2),
+  PC("GColorImperialPurple",       "#550055",1,0,1),
+  PC("GColorVividViolet",          "#aa00ff",2,0,3),
+  PC("GColorPurple",               "#aa00aa",2,0,2),
+  PC("GColorJazzberryJam",         "#aa0055",2,0,1),
+  PC("GColorBulgarianRose",        "#550000",1,0,0),
+  PC("GColorDarkCandyAppleRed",    "#aa0000",2,0,0),
+  PC("GColorRed",                  "#ff0000",3,0,0),
+  PC("GColorFolly",                "#ff0055",3,0,1),
+  PC("GColorFashionMagenta",       "#ff00aa",3,0,2),
+  PC("GColorMagenta",              "#ff00ff",3,0,3),
+  PC("GColorShockingPink",         "#ff55ff",3,1,3),
+  PC("GColorBrilliantRose",        "#ff55aa",3,1,2),
+  PC("GColorSunsetOrange",         "#ff5555",3,1,1),
+  PC("GColorOrange",               "#ff5500",3,1,0),
+  PC("GColorChromeYellow",         "#ffaa00",3,2,0),
+  PC("GColorRajah",                "#ffaa55",3,2,1),
+  PC("GColorMelon",                "#ffaaaa",3,2,2),
+  PC("GColorRichBrilliantLavender","#ffaaff",3,2,3),
+  PC("GColorYellow",               "#ffff00",3,3,0),
+  PC("GColorIcterine",             "#ffff55",3,3,1),
+  PC("GColorPastelYellow",         "#ffffaa",3,3,2),
+  PC("GColorArmyGreen",            "#555500",1,1,0),
+  PC("GColorLimerick",             "#aaaa00",2,2,0),
+  PC("GColorBrass",                "#aaaa55",2,2,1),
+  PC("GColorBabyBlueEyes",         "#aaaaff",2,2,3),
+  PC("GColorSpringBud",            "#aaff00",2,3,0),
+  PC("GColorInchworm",             "#aaff55",2,3,1),
+  PC("GColorKellyGreen",           "#55aa00",1,2,0),
+  PC("GColorBrightGreen",          "#55ff00",1,3,0),
+  PC("GColorDarkGreen",            "#005500",0,1,0),
+  PC("GColorIslamicGreen",         "#00aa00",0,2,0),
+  PC("GColorGreen",                "#00ff00",0,3,0),
+  PC("GColorScreaminGreen",        "#55ff55",1,3,1),
+  PC("GColorMayGreen",             "#55aa55",1,2,1),
+  PC("GColorMalachite",            "#00ff55",0,3,1),
+  PC("GColorMediumAquamarine",     "#55ffaa",1,3,2),
+  PC("GColorMintGreen",            "#aaffaa",2,3,2),
+  PC("GColorJaegerGreen",          "#00aa55",0,2,1),
+  PC("GColorMidnightGreen",        "#005555",0,1,1),
+  PC("GColorMediumSpringGreen",    "#00ffaa",0,3,2),
+  PC("GColorElectricBlue",         "#55ffff",1,3,3),
+  PC("GColorCeleste",              "#aaffff",2,3,3),
+  PC("GColorCyan",                 "#00ffff",0,3,3),
+  PC("GColorTiffanyBlue",          "#00aaaa",0,2,2),
+  PC("GColorCadetBlue",            "#55aaaa",1,2,2),
+  PC("GColorVividCerulean",        "#00aaff",0,2,3),
+  PC("GColorPictonBlue",           "#55aaff",1,2,3),
+  PC("GColorBlueMoon",             "#0055ff",0,1,3),
+  PC("GColorCobaltBlue",           "#0055aa",0,1,2),
+  PC("GColorLiberty",              "#5555aa",1,1,2),
+  PC("GColorVeryLightBlue",        "#5555ff",1,1,3),
+  PC("GColorLavenderIndigo",       "#aa55ff",2,1,3),
+  PC("GColorPurpureus",            "#aa55aa",2,1,2),
+  PC("GColorRoseVale",             "#aa5555",2,1,1),
+  PC("GColorWindsorTan",           "#aa5500",2,1,0),
 };
-#define NUM_COLORS ((int)(sizeof(s_colors) / sizeof(s_colors[0])))
-
+#define NUM_COLORS ((int)(sizeof(s_colors)/sizeof(s_colors[0])))
 #else
 static const SamplerColor s_colors[] = {
-  PC("GColorBlack",     "#000000", 0,0,0),
-  PC("GColorDarkGray",  "#555555", 1,1,1),
-  PC("GColorLightGray", "#aaaaaa", 2,2,2),
-  PC("GColorWhite",     "#ffffff", 3,3,3),
+  PC("GColorBlack",     "#000000",0,0,0),
+  PC("GColorDarkGray",  "#555555",1,1,1),
+  PC("GColorLightGray", "#aaaaaa",2,2,2),
+  PC("GColorWhite",     "#ffffff",3,3,3),
 };
 #define NUM_COLORS 4
 #endif
@@ -170,11 +160,11 @@ static MenuLayer *s_main_menu;
 static Window      *s_font_window;
 static MenuLayer   *s_font_menu;
 static Window      *s_font_detail_window;
-static TextLayer   *s_font_header_layer;   // pinned, not scrolling
-static TextLayer   *s_font_tag_layer;      // pinned subtitle
+static TextLayer   *s_font_header_layer;
 static ScrollLayer *s_font_scroll_layer;
 static Layer       *s_font_canvas_layer;
 static int          s_current_font = 0;
+static int16_t      s_font_canvas_h = 0;
 
 // Colors
 static Window    *s_color_window;
@@ -198,59 +188,52 @@ static bool color_is_light(const SamplerColor *c) {
 
 // ============================================================
 // FONT DETAIL WINDOW
-// Pinned header (name + key tag) above a ScrollLayer of specimens.
+// Pinned name header + ScrollLayer of specimens.
+// UP/DOWN at list boundaries advances to prev/next font.
 // ============================================================
-#define FONT_HDR_H       32   // total height of the pinned header block
-#define FONT_NAME_H      18
-#define FONT_TAG_H       14
-#define FONT_PAD          6
-#define FONT_LINE_GAP     4
+#define FONT_HDR_H   20
+#define FONT_PAD      6
+#define FONT_LINE_GAP 4
 
-static int16_t s_font_canvas_h = 0;
+static void font_detail_reload(void);
 
 static void font_canvas_draw(Layer *layer, GContext *ctx) {
-  const SamplerFont *f  = &s_fonts[s_current_font];
-  GFont specimen        = fonts_get_system_font(f->key);
-  GRect bounds          = layer_get_bounds(layer);
-  int   w               = bounds.size.w;
-  int   pad             = FONT_PAD + ROUND_INSET;
-  int   y               = FONT_PAD;
+  const SamplerFont *f = &s_fonts[s_current_font];
+  GFont specimen = fonts_get_system_font(f->key);
+  GRect bounds   = layer_get_bounds(layer);
+  int   w        = bounds.size.w;
+  int   pad      = FONT_PAD + ROUND_INSET;
+  int   y        = FONT_PAD;
 
   graphics_context_set_text_color(ctx, GColorBlack);
-
   for (int i = 0; i < NUM_SAMPLES; i++) {
-    // Use a tall measurement rect to avoid truncation on large fonts.
-    // Width accounts for round-screen insets on both sides.
     GSize sz = graphics_text_layout_get_content_size(
       s_samples[i], specimen,
-      GRect(0, 0, w - 2 * pad, 1000),
+      GRect(0,0, w - 2*pad, 1000),
       GTextOverflowModeWordWrap, GTextAlignmentLeft);
     int line_h = sz.h + FONT_LINE_GAP;
     if (line_h < 14) line_h = 14;
-
     graphics_draw_text(ctx, s_samples[i], specimen,
-      GRect(pad, y, w - 2 * pad, line_h + 4),
+      GRect(pad, y, w - 2*pad, line_h + 4),
       GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
     y += line_h + FONT_LINE_GAP;
-
     if (i < NUM_SAMPLES - 1) {
       graphics_context_set_stroke_color(ctx, GColorLightGray);
-      graphics_draw_line(ctx, GPoint(pad, y), GPoint(w - pad, y));
+      graphics_draw_line(ctx, GPoint(pad,y), GPoint(w-pad,y));
       y += 3;
     }
   }
 }
 
-// Compute canvas height needed — uses same measurement as draw.
 static int16_t compute_font_canvas_height(int w) {
   const SamplerFont *f = &s_fonts[s_current_font];
-  GFont specimen       = fonts_get_system_font(f->key);
-  int   pad            = FONT_PAD + ROUND_INSET;
-  int   y              = FONT_PAD;
+  GFont specimen = fonts_get_system_font(f->key);
+  int   pad      = FONT_PAD + ROUND_INSET;
+  int   y        = FONT_PAD;
   for (int i = 0; i < NUM_SAMPLES; i++) {
     GSize sz = graphics_text_layout_get_content_size(
       s_samples[i], specimen,
-      GRect(0, 0, w - 2 * pad, 1000),
+      GRect(0,0, w - 2*pad, 1000),
       GTextOverflowModeWordWrap, GTextAlignmentLeft);
     int line_h = sz.h + FONT_LINE_GAP;
     if (line_h < 14) line_h = 14;
@@ -260,19 +243,75 @@ static int16_t compute_font_canvas_height(int w) {
   return (int16_t)(y + FONT_PAD);
 }
 
+// Called when font changes while detail is open: rebuild scroll content
+static void font_detail_reload(void) {
+  const SamplerFont *f = &s_fonts[s_current_font];
+  text_layer_set_text(s_font_header_layer, f->name);
+
+  Layer *root   = window_get_root_layer(s_font_detail_window);
+  GRect  bounds = layer_get_bounds(root);
+  int    w      = bounds.size.w;
+  int    h      = bounds.size.h;
+
+  // Recalculate canvas height for new font
+  s_font_canvas_h = compute_font_canvas_height(w);
+  GRect scroll_bounds = GRect(0, FONT_HDR_H, w, h - FONT_HDR_H);
+  if (s_font_canvas_h < scroll_bounds.size.h)
+    s_font_canvas_h = (int16_t)scroll_bounds.size.h;
+
+  // Resize canvas and reset scroll to top
+  layer_set_frame(s_font_canvas_layer, GRect(0,0,w,s_font_canvas_h));
+  scroll_layer_set_content_size(s_font_scroll_layer, GSize(w, s_font_canvas_h));
+  scroll_layer_set_content_offset(s_font_scroll_layer, GPointZero, false);
+  layer_mark_dirty(s_font_canvas_layer);
+}
+
+static void font_detail_up(ClickRecognizerRef r, void *ctx) {
+  // If scrolled to top, go to previous font
+  GPoint offset = scroll_layer_get_content_offset(s_font_scroll_layer);
+  if (offset.y >= 0) {
+    // At top: go to previous font
+    if (s_current_font > 0) {
+      s_current_font--;
+      font_detail_reload();
+    }
+  } else {
+    // Scroll up one step
+    scroll_layer_scroll_up_click_handler(r, (void*)s_font_scroll_layer);
+  }
+}
+
+static void font_detail_down(ClickRecognizerRef r, void *ctx) {
+  // If scrolled to bottom, go to next font
+  GPoint offset  = scroll_layer_get_content_offset(s_font_scroll_layer);
+  Layer  *root   = window_get_root_layer(s_font_detail_window);
+  GRect   bounds = layer_get_bounds(root);
+  int     vis_h  = bounds.size.h - FONT_HDR_H;
+  int     bottom = -offset.y + vis_h;
+  if (bottom >= s_font_canvas_h) {
+    // At bottom: advance to next font
+    if (s_current_font < NUM_FONTS - 1) {
+      s_current_font++;
+      font_detail_reload();
+    }
+  } else {
+    scroll_layer_scroll_down_click_handler(r, (void*)s_font_scroll_layer);
+  }
+}
+
+static void font_detail_click_config(void *ctx) {
+  window_single_repeating_click_subscribe(BUTTON_ID_UP,   150, font_detail_up);
+  window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 150, font_detail_down);
+}
+
 static void font_detail_load(Window *window) {
   Layer *root   = window_get_root_layer(window);
   GRect  bounds = layer_get_bounds(root);
   int    w      = bounds.size.w;
   int    h      = bounds.size.h;
 
-  // --- Pinned header (does NOT scroll) ---
-  // Black bar at top: name on first line, tag on second.
-  int hdr_total = FONT_HDR_H;
-
-  // Background fill for header
-  // We'll use the name layer background colour trick:
-  s_font_header_layer = text_layer_create(GRect(0, 0, w, FONT_NAME_H + 2));
+  // Pinned header
+  s_font_header_layer = text_layer_create(GRect(0, 0, w, FONT_HDR_H));
   text_layer_set_background_color(s_font_header_layer, GColorBlack);
   text_layer_set_text_color(s_font_header_layer, GColorWhite);
   text_layer_set_font(s_font_header_layer,
@@ -281,39 +320,31 @@ static void font_detail_load(Window *window) {
   text_layer_set_text(s_font_header_layer, s_fonts[s_current_font].name);
   layer_add_child(root, text_layer_get_layer(s_font_header_layer));
 
-  s_font_tag_layer = text_layer_create(
-    GRect(ROUND_INSET, FONT_NAME_H + 2, w - 2 * ROUND_INSET, FONT_TAG_H));
-  text_layer_set_background_color(s_font_tag_layer, GColorDarkGray);
-  text_layer_set_text_color(s_font_tag_layer, GColorWhite);
-  text_layer_set_font(s_font_tag_layer,
-    fonts_get_system_font(FONT_KEY_GOTHIC_14));
-  text_layer_set_text_alignment(s_font_tag_layer, GTextAlignmentCenter);
-  text_layer_set_overflow_mode(s_font_tag_layer, GTextOverflowModeFill);
-  text_layer_set_text(s_font_tag_layer, s_fonts[s_current_font].tag);
-  layer_add_child(root, text_layer_get_layer(s_font_tag_layer));
-
-  // --- ScrollLayer below the pinned header ---
-  GRect scroll_bounds = GRect(0, hdr_total, w, h - hdr_total);
+  // ScrollLayer below header
+  GRect scroll_bounds = GRect(0, FONT_HDR_H, w, h - FONT_HDR_H);
   s_font_canvas_h = compute_font_canvas_height(w);
   if (s_font_canvas_h < scroll_bounds.size.h)
     s_font_canvas_h = (int16_t)scroll_bounds.size.h;
 
   s_font_scroll_layer = scroll_layer_create(scroll_bounds);
-  scroll_layer_set_content_size(s_font_scroll_layer,
-    GSize(w, s_font_canvas_h));
-  scroll_layer_set_click_config_onto_window(s_font_scroll_layer, window);
+  scroll_layer_set_content_size(s_font_scroll_layer, GSize(w, s_font_canvas_h));
+  // Don't let scroll layer steal click config — we handle UP/DOWN ourselves
   layer_add_child(root, scroll_layer_get_layer(s_font_scroll_layer));
 
   s_font_canvas_layer = layer_create(GRect(0, 0, w, s_font_canvas_h));
   layer_set_update_proc(s_font_canvas_layer, font_canvas_draw);
   scroll_layer_add_child(s_font_scroll_layer, s_font_canvas_layer);
+
+  window_set_click_config_provider(window, font_detail_click_config);
 }
 
 static void font_detail_unload(Window *window) {
   text_layer_destroy(s_font_header_layer);
-  text_layer_destroy(s_font_tag_layer);
   layer_destroy(s_font_canvas_layer);
   scroll_layer_destroy(s_font_scroll_layer);
+  // Sync font list selection
+  MenuIndex idx = {0, (uint16_t)s_current_font};
+  menu_layer_set_selected_index(s_font_menu, idx, MenuRowAlignCenter, false);
 }
 
 // ============================================================
@@ -322,26 +353,20 @@ static void font_detail_unload(Window *window) {
 static uint16_t font_menu_num_rows(MenuLayer *ml, uint16_t sec, void *ctx) {
   return (uint16_t)NUM_FONTS;
 }
-
 static int16_t font_menu_cell_height(MenuLayer *ml, MenuIndex *idx, void *ctx) {
   return 36;
 }
-
 static void font_menu_draw_row(GContext *ctx, const Layer *cell,
                                MenuIndex *idx, void *cbctx) {
-  const SamplerFont *f = &s_fonts[idx->row];
-  menu_cell_basic_draw(ctx, cell, f->name, f->tag, NULL);
+  menu_cell_basic_draw(ctx, cell, s_fonts[idx->row].name, NULL, NULL);
 }
-
 static void font_menu_select(MenuLayer *ml, MenuIndex *idx, void *ctx) {
   s_current_font = idx->row;
   window_stack_push(s_font_detail_window, true);
 }
-
 static void font_window_load(Window *window) {
-  Layer *root   = window_get_root_layer(window);
-  GRect  bounds = layer_get_bounds(root);
-  s_font_menu   = menu_layer_create(bounds);
+  Layer *root = window_get_root_layer(window);
+  s_font_menu = menu_layer_create(layer_get_bounds(root));
   menu_layer_set_callbacks(s_font_menu, NULL, (MenuLayerCallbacks){
     .get_num_rows    = font_menu_num_rows,
     .get_cell_height = font_menu_cell_height,
@@ -351,38 +376,56 @@ static void font_window_load(Window *window) {
   menu_layer_set_click_config_onto_window(s_font_menu, window);
   layer_add_child(root, menu_layer_get_layer(s_font_menu));
 }
-
 static void font_window_unload(Window *window) {
   menu_layer_destroy(s_font_menu);
 }
 
 // ============================================================
 // COLOR DETAIL WINDOW
+// UP/DOWN navigates between colors; back returns to list at same position.
 // ============================================================
+static void color_detail_refresh(void);
+
 static void color_fill_draw(Layer *layer, GContext *ctx) {
   const SamplerColor *c = &s_colors[s_current_color];
 #if defined(PBL_COLOR)
   graphics_context_set_fill_color(ctx, c->color);
 #else
-  GColor fill = (c->r == 0) ? GColorBlack :
-                (c->r == 1) ? GColorDarkGray :
-                (c->r == 2) ? GColorLightGray : GColorWhite;
+  GColor fill = (c->r==0) ? GColorBlack :
+                (c->r==1) ? GColorDarkGray :
+                (c->r==2) ? GColorLightGray : GColorWhite;
   graphics_context_set_fill_color(ctx, fill);
 #endif
   graphics_fill_rect(ctx, layer_get_bounds(layer), 0, GCornerNone);
 }
 
-static void color_detail_update(void) {
+static void color_detail_refresh(void) {
   const SamplerColor *c = &s_colors[s_current_color];
   static char buf[80];
   snprintf(buf, sizeof(buf), "%s\n%s\nR:%d  G:%d  B:%d",
            c->name, c->hex, (int)c->r, (int)c->g, (int)c->b);
   text_layer_set_text(s_color_info_layer, buf);
   text_layer_set_background_color(s_color_info_layer, GColorClear);
-  bool light = color_is_light(c);
   text_layer_set_text_color(s_color_info_layer,
-    light ? GColorBlack : GColorWhite);
+    color_is_light(c) ? GColorBlack : GColorWhite);
   layer_mark_dirty(s_color_fill_layer);
+}
+
+static void color_detail_up(ClickRecognizerRef r, void *ctx) {
+  if (s_current_color > 0) {
+    s_current_color--;
+    color_detail_refresh();
+  }
+}
+static void color_detail_down(ClickRecognizerRef r, void *ctx) {
+  if (s_current_color < NUM_COLORS - 1) {
+    s_current_color++;
+    color_detail_refresh();
+  }
+}
+static void color_detail_click_config(void *ctx) {
+  window_single_repeating_click_subscribe(BUTTON_ID_UP,   150, color_detail_up);
+  window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 150, color_detail_down);
 }
 
 static void color_detail_load(Window *window) {
@@ -393,10 +436,10 @@ static void color_detail_load(Window *window) {
   layer_set_update_proc(s_color_fill_layer, color_fill_draw);
   layer_add_child(root, s_color_fill_layer);
 
-  int inset   = ROUND_INSET + 8;
-  int info_h  = 72;
-  GRect info_rect = GRect(inset, (bounds.size.h - info_h) / 2,
-                          bounds.size.w - 2 * inset, info_h);
+  int inset  = ROUND_INSET + 8;
+  int info_h = 72;
+  GRect info_rect = GRect(inset, (bounds.size.h - info_h)/2,
+                          bounds.size.w - 2*inset, info_h);
   s_color_info_layer = text_layer_create(info_rect);
   text_layer_set_font(s_color_info_layer,
     fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
@@ -404,12 +447,15 @@ static void color_detail_load(Window *window) {
   text_layer_set_overflow_mode(s_color_info_layer, GTextOverflowModeWordWrap);
   layer_add_child(root, text_layer_get_layer(s_color_info_layer));
 
-  color_detail_update();
+  window_set_click_config_provider(window, color_detail_click_config);
+  color_detail_refresh();
 }
-
 static void color_detail_unload(Window *window) {
   layer_destroy(s_color_fill_layer);
   text_layer_destroy(s_color_info_layer);
+  // Return list to same row
+  MenuIndex idx = {0, (uint16_t)s_current_color};
+  menu_layer_set_selected_index(s_color_menu, idx, MenuRowAlignCenter, false);
 }
 
 // ============================================================
@@ -418,56 +464,56 @@ static void color_detail_unload(Window *window) {
 static uint16_t color_menu_num_rows(MenuLayer *ml, uint16_t sec, void *ctx) {
   return (uint16_t)NUM_COLORS;
 }
-
 static int16_t color_menu_cell_height(MenuLayer *ml, MenuIndex *idx, void *ctx) {
-  return 28;
+  return 30;
 }
-
 static void color_menu_draw_row(GContext *ctx, const Layer *cell,
                                 MenuIndex *idx, void *cbctx) {
-  const SamplerColor *c = &s_colors[idx->row];
+  const SamplerColor *c  = &s_colors[idx->row];
   GRect bounds = layer_get_bounds(cell);
+  bool  hi     = menu_cell_layer_is_highlighted(cell);
   int   inset  = ROUND_INSET;
 
+  // Swatch
   int sw = 20, sh = 20;
   int sy = (bounds.size.h - sh) / 2;
   int sx = inset + 4;
   GRect swatch = GRect(sx, sy, sw, sh);
 
 #if defined(PBL_COLOR)
+  // Always draw swatch in real color regardless of highlight
   graphics_context_set_fill_color(ctx, c->color);
   graphics_fill_rect(ctx, swatch, 2, GCornersAll);
-  graphics_context_set_stroke_color(ctx, GColorDarkGray);
+  graphics_context_set_stroke_color(ctx, hi ? GColorWhite : GColorDarkGray);
   graphics_context_set_stroke_width(ctx, 1);
   graphics_draw_round_rect(ctx, swatch, 2);
 #else
-  GColor fill = (c->r == 0) ? GColorBlack :
-                (c->r == 1) ? GColorDarkGray :
-                (c->r == 2) ? GColorLightGray : GColorWhite;
+  GColor fill = (c->r==0) ? GColorBlack :
+                (c->r==1) ? GColorDarkGray :
+                (c->r==2) ? GColorLightGray : GColorWhite;
   graphics_context_set_fill_color(ctx, fill);
   graphics_fill_rect(ctx, swatch, 0, GCornerNone);
-  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_context_set_stroke_color(ctx, hi ? GColorWhite : GColorBlack);
   graphics_draw_rect(ctx, swatch);
 #endif
 
+  // Name: use white text when highlighted (selected row)
   GFont small = fonts_get_system_font(FONT_KEY_GOTHIC_14);
-  const char *short_name = c->name + 6;
+  const char *short_name = c->name + 6;  // skip "GColor"
   int tx = sx + sw + 6;
-  graphics_context_set_text_color(ctx, GColorBlack);
+  int tw = bounds.size.w - tx - inset - 4;
+  graphics_context_set_text_color(ctx, hi ? GColorWhite : GColorBlack);
   graphics_draw_text(ctx, short_name, small,
-    GRect(tx, sy - 1, bounds.size.w - tx - inset - 4, bounds.size.h),
+    GRect(tx, sy - 1, tw, bounds.size.h),
     GTextOverflowModeFill, GTextAlignmentLeft, NULL);
 }
-
 static void color_menu_select(MenuLayer *ml, MenuIndex *idx, void *ctx) {
   s_current_color = idx->row;
   window_stack_push(s_color_detail_window, true);
 }
-
 static void color_window_load(Window *window) {
-  Layer *root   = window_get_root_layer(window);
-  GRect  bounds = layer_get_bounds(root);
-  s_color_menu  = menu_layer_create(bounds);
+  Layer *root  = window_get_root_layer(window);
+  s_color_menu = menu_layer_create(layer_get_bounds(root));
   menu_layer_set_callbacks(s_color_menu, NULL, (MenuLayerCallbacks){
     .get_num_rows    = color_menu_num_rows,
     .get_cell_height = color_menu_cell_height,
@@ -477,7 +523,6 @@ static void color_window_load(Window *window) {
   menu_layer_set_click_config_onto_window(s_color_menu, window);
   layer_add_child(root, menu_layer_get_layer(s_color_menu));
 }
-
 static void color_window_unload(Window *window) {
   menu_layer_destroy(s_color_menu);
 }
@@ -488,9 +533,10 @@ static void color_window_unload(Window *window) {
 static void platform_window_load(Window *window) {
   Layer *root   = window_get_root_layer(window);
   GRect  bounds = layer_get_bounds(root);
-
   static char info[512];
 
+  // Platform name, watch model, and specs.
+  // Source: developer.repebble.com/guides/tools-and-resources/hardware-information
 #if defined(PBL_PLATFORM_EMERY)
   snprintf(info, sizeof(info),
     "Emery\nPebble Time 2\n"
@@ -498,10 +544,10 @@ static void platform_window_load(Window *window) {
     "\nShape\nRectangle\n"
     "\nColor\n64-color\n"
     "\nHealth\nSteps, Sleep,\nHR, Calories\n"
-    "\n* LECO 60 sizes\n  available here");
+    "\n* LECO 60 sizes\n  only on Emery/Gabbro");
 #elif defined(PBL_PLATFORM_BASALT)
   snprintf(info, sizeof(info),
-    "Basalt\nPebble Time\n"
+    "Basalt\nPebble Time / Time Steel\n"
     "\nScreen\n144 x 168 px\n"
     "\nShape\nRectangle\n"
     "\nColor\n64-color\n"
@@ -522,14 +568,14 @@ static void platform_window_load(Window *window) {
     "\nHealth\nSteps, Sleep,\nHR, Calories");
 #elif defined(PBL_PLATFORM_APLITE)
   snprintf(info, sizeof(info),
-    "Aplite\nPebble OG / Steel\n"
+    "Aplite\nPebble Classic / Steel\n"
     "\nScreen\n144 x 168 px\n"
     "\nShape\nRectangle\n"
     "\nColor\nBlack & White\n"
     "\nHealth\nNone");
 #elif defined(PBL_PLATFORM_FLINT)
   snprintf(info, sizeof(info),
-    "Flint\nPebble Time Round 14\n"
+    "Flint\nPebble 2 Duo\n"
     "\nScreen\n144 x 168 px\n"
     "\nShape\nRectangle\n"
     "\nColor\nBlack & White\n"
@@ -541,26 +587,23 @@ static void platform_window_load(Window *window) {
     "\nShape\nRound\n"
     "\nColor\n64-color\n"
     "\nHealth\nSteps, Sleep,\nHR, Calories\n"
-    "\n* LECO 60 sizes\n  available here");
+    "\n* LECO 60 sizes\n  only on Emery/Gabbro");
 #else
   snprintf(info, sizeof(info), "Unknown platform");
 #endif
 
-  // Inset text area for round screens
-  int hpad = ROUND_INSET + 6;
+  int hpad   = ROUND_INSET + 6;
   int text_w = bounds.size.w - 2 * hpad;
-
   GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-  GSize text_size = graphics_text_layout_get_content_size(
+  GSize sz   = graphics_text_layout_get_content_size(
     info, font,
-    GRect(0, 0, text_w, 2000),
+    GRect(0,0,text_w,2000),
     GTextOverflowModeWordWrap, GTextAlignmentLeft);
-  int content_h = text_size.h + 24;
+  int content_h = sz.h + 24;
   if (content_h < bounds.size.h) content_h = bounds.size.h;
 
   s_platform_scroll = scroll_layer_create(bounds);
-  scroll_layer_set_content_size(s_platform_scroll,
-    GSize(bounds.size.w, content_h));
+  scroll_layer_set_content_size(s_platform_scroll, GSize(bounds.size.w, content_h));
   scroll_layer_set_click_config_onto_window(s_platform_scroll, window);
   layer_add_child(root, scroll_layer_get_layer(s_platform_scroll));
 
@@ -572,7 +615,6 @@ static void platform_window_load(Window *window) {
   scroll_layer_add_child(s_platform_scroll,
     text_layer_get_layer(s_platform_text_layer));
 }
-
 static void platform_window_unload(Window *window) {
   text_layer_destroy(s_platform_text_layer);
   scroll_layer_destroy(s_platform_scroll);
@@ -584,11 +626,10 @@ static void platform_window_unload(Window *window) {
 static uint16_t main_menu_num_rows(MenuLayer *ml, uint16_t sec, void *ctx) {
   return 3;
 }
-
 static void main_menu_draw_row(GContext *ctx, const Layer *cell,
                                MenuIndex *idx, void *cbctx) {
   static const char *titles[] = { "Fonts", "Colors", "Platform" };
-  static const char *subs[] = {
+  static const char *subs[]   = {
     "System font specimen",
 #if defined(PBL_COLOR)
     "64-color palette",
@@ -599,7 +640,6 @@ static void main_menu_draw_row(GContext *ctx, const Layer *cell,
   };
   menu_cell_basic_draw(ctx, cell, titles[idx->row], subs[idx->row], NULL);
 }
-
 static void main_menu_select(MenuLayer *ml, MenuIndex *idx, void *ctx) {
   switch (idx->row) {
     case 0: window_stack_push(s_font_window,     true); break;
@@ -607,11 +647,9 @@ static void main_menu_select(MenuLayer *ml, MenuIndex *idx, void *ctx) {
     case 2: window_stack_push(s_platform_window, true); break;
   }
 }
-
 static void main_window_load(Window *window) {
-  Layer *root   = window_get_root_layer(window);
-  GRect  bounds = layer_get_bounds(root);
-  s_main_menu   = menu_layer_create(bounds);
+  Layer *root  = window_get_root_layer(window);
+  s_main_menu  = menu_layer_create(layer_get_bounds(root));
   menu_layer_set_callbacks(s_main_menu, NULL, (MenuLayerCallbacks){
     .get_num_rows = main_menu_num_rows,
     .draw_row     = main_menu_draw_row,
@@ -620,7 +658,6 @@ static void main_window_load(Window *window) {
   menu_layer_set_click_config_onto_window(s_main_menu, window);
   layer_add_child(root, menu_layer_get_layer(s_main_menu));
 }
-
 static void main_window_unload(Window *window) {
   menu_layer_destroy(s_main_menu);
 }
@@ -630,10 +667,9 @@ static void main_window_unload(Window *window) {
 // ============================================================
 static Window *make_window(WindowHandler load, WindowHandler unload) {
   Window *w = window_create();
-  window_set_window_handlers(w, (WindowHandlers){ .load = load, .unload = unload });
+  window_set_window_handlers(w, (WindowHandlers){ .load=load, .unload=unload });
   return w;
 }
-
 static void init(void) {
   s_main_window         = make_window(main_window_load,     main_window_unload);
   s_font_window         = make_window(font_window_load,     font_window_unload);
@@ -643,7 +679,6 @@ static void init(void) {
   s_platform_window     = make_window(platform_window_load, platform_window_unload);
   window_stack_push(s_main_window, true);
 }
-
 static void deinit(void) {
   window_destroy(s_main_window);
   window_destroy(s_font_window);
@@ -652,9 +687,4 @@ static void deinit(void) {
   window_destroy(s_color_detail_window);
   window_destroy(s_platform_window);
 }
-
-int main(void) {
-  init();
-  app_event_loop();
-  deinit();
-}
+int main(void) { init(); app_event_loop(); deinit(); }

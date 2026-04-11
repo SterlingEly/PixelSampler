@@ -1,12 +1,18 @@
 #include <pebble.h>
 
 // ============================================================
-// Pixel Sampler — main.c  v1.3
+// Pixel Sampler — main.c  v1.4
 // ============================================================
 
-// Horizontal inset for round screens to stay inside the circle
-#if defined(PBL_ROUND)
-#  define ROUND_INSET 18
+// Round-screen horizontal inset.
+// For scrolling content we must use the *narrowest* chord (near top/bottom
+// of the circle) as our fixed inset, otherwise text gets clipped there.
+// chalk  = 180px diameter -> safe inset ~30px each side
+// gabbro = 260px diameter -> safe inset ~40px each side
+#if defined(PBL_PLATFORM_GABBRO)
+#  define ROUND_INSET 40
+#elif defined(PBL_ROUND)
+#  define ROUND_INSET 30
 #else
 #  define ROUND_INSET 0
 #endif
@@ -15,8 +21,8 @@
 // FONT TABLE
 // ============================================================
 typedef struct {
-  const char *name;   // user-facing name, e.g. "Gothic 14 Bold"
-  const char *key;    // FONT_KEY_* string (for fonts_get_system_font)
+  const char *name;
+  const char *key;
 } SamplerFont;
 
 static const SamplerFont s_fonts[] = {
@@ -48,14 +54,10 @@ static const SamplerFont s_fonts[] = {
   { "Roboto Bold 49",         FONT_KEY_ROBOTO_BOLD_SUBSET_49      },
   { "Roboto Condensed 21",    FONT_KEY_ROBOTO_CONDENSED_21        },
 };
-#define NUM_FONTS ((int)(sizeof(s_fonts) / sizeof(s_fonts[0])))
+#define NUM_FONTS ((int)(sizeof(s_fonts)/sizeof(s_fonts[0])))
 
 static const char *s_samples[] = {
-  "09:42",
-  "0123456789",
-  "AaBbCcDd",
-  "The quick fox",
-  "!@#$%^&*()",
+  "09:42", "0123456789", "AaBbCcDd", "The quick fox", "!@#$%^&*()",
 };
 #define NUM_SAMPLES 5
 
@@ -69,8 +71,8 @@ typedef struct {
   GColor   color;
 } SamplerColor;
 
-#define PC(nm, hx, r2, g2, b2) \
-  { nm, hx, r2, g2, b2, {.argb=(uint8_t)(0b11000000|((r2)<<4)|((g2)<<2)|(b2))} }
+#define PC(nm,hx,r2,g2,b2) \
+  {nm,hx,r2,g2,b2,{.argb=(uint8_t)(0b11000000|((r2)<<4)|((g2)<<2)|(b2))}}
 
 #if defined(PBL_COLOR)
 static const SamplerColor s_colors[] = {
@@ -142,10 +144,8 @@ static const SamplerColor s_colors[] = {
 #define NUM_COLORS ((int)(sizeof(s_colors)/sizeof(s_colors[0])))
 #else
 static const SamplerColor s_colors[] = {
-  PC("GColorBlack",     "#000000",0,0,0),
-  PC("GColorDarkGray",  "#555555",1,1,1),
-  PC("GColorLightGray", "#aaaaaa",2,2,2),
-  PC("GColorWhite",     "#ffffff",3,3,3),
+  PC("GColorBlack","#000000",0,0,0), PC("GColorDarkGray","#555555",1,1,1),
+  PC("GColorLightGray","#aaaaaa",2,2,2), PC("GColorWhite","#ffffff",3,3,3),
 };
 #define NUM_COLORS 4
 #endif
@@ -156,7 +156,6 @@ static const SamplerColor s_colors[] = {
 static Window    *s_main_window;
 static MenuLayer *s_main_menu;
 
-// Fonts
 static Window      *s_font_window;
 static MenuLayer   *s_font_menu;
 static Window      *s_font_detail_window;
@@ -166,7 +165,6 @@ static Layer       *s_font_canvas_layer;
 static int          s_current_font = 0;
 static int16_t      s_font_canvas_h = 0;
 
-// Colors
 static Window    *s_color_window;
 static MenuLayer *s_color_menu;
 static Window    *s_color_detail_window;
@@ -174,7 +172,6 @@ static Layer     *s_color_fill_layer;
 static TextLayer *s_color_info_layer;
 static int        s_current_color = 0;
 
-// Platform
 static Window      *s_platform_window;
 static ScrollLayer *s_platform_scroll;
 static TextLayer   *s_platform_text_layer;
@@ -183,17 +180,21 @@ static TextLayer   *s_platform_text_layer;
 // HELPERS
 // ============================================================
 static bool color_is_light(const SamplerColor *c) {
-  return (c->r * 2 + c->g * 5 + c->b) >= 9;
+  return (c->r*2 + c->g*5 + c->b) >= 9;
 }
 
 // ============================================================
-// FONT DETAIL WINDOW
-// Pinned name header + ScrollLayer of specimens.
-// UP/DOWN at list boundaries advances to prev/next font.
+// FONT DETAIL
 // ============================================================
-#define FONT_HDR_H   20
-#define FONT_PAD      6
-#define FONT_LINE_GAP 4
+// Header height: tall enough for long names to wrap on round screens.
+// On round we allow 2 lines (28px); on rect 1 line is usually enough (20px).
+#if defined(PBL_ROUND)
+#  define FONT_HDR_H 28
+#else
+#  define FONT_HDR_H 20
+#endif
+#define FONT_PAD       6
+#define FONT_LINE_GAP  4
 
 static void font_detail_reload(void);
 
@@ -209,15 +210,15 @@ static void font_canvas_draw(Layer *layer, GContext *ctx) {
   for (int i = 0; i < NUM_SAMPLES; i++) {
     GSize sz = graphics_text_layout_get_content_size(
       s_samples[i], specimen,
-      GRect(0,0, w - 2*pad, 1000),
+      GRect(0,0,w-2*pad,1000),
       GTextOverflowModeWordWrap, GTextAlignmentLeft);
-    int line_h = sz.h + FONT_LINE_GAP;
-    if (line_h < 14) line_h = 14;
+    int lh = sz.h + FONT_LINE_GAP;
+    if (lh < 14) lh = 14;
     graphics_draw_text(ctx, s_samples[i], specimen,
-      GRect(pad, y, w - 2*pad, line_h + 4),
+      GRect(pad, y, w-2*pad, lh+4),
       GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-    y += line_h + FONT_LINE_GAP;
-    if (i < NUM_SAMPLES - 1) {
+    y += lh + FONT_LINE_GAP;
+    if (i < NUM_SAMPLES-1) {
       graphics_context_set_stroke_color(ctx, GColorLightGray);
       graphics_draw_line(ctx, GPoint(pad,y), GPoint(w-pad,y));
       y += 3;
@@ -225,80 +226,57 @@ static void font_canvas_draw(Layer *layer, GContext *ctx) {
   }
 }
 
-static int16_t compute_font_canvas_height(int w) {
+static int16_t compute_font_canvas_h(int w) {
   const SamplerFont *f = &s_fonts[s_current_font];
   GFont specimen = fonts_get_system_font(f->key);
-  int   pad      = FONT_PAD + ROUND_INSET;
-  int   y        = FONT_PAD;
+  int pad = FONT_PAD + ROUND_INSET;
+  int y   = FONT_PAD;
   for (int i = 0; i < NUM_SAMPLES; i++) {
     GSize sz = graphics_text_layout_get_content_size(
       s_samples[i], specimen,
-      GRect(0,0, w - 2*pad, 1000),
+      GRect(0,0,w-2*pad,1000),
       GTextOverflowModeWordWrap, GTextAlignmentLeft);
-    int line_h = sz.h + FONT_LINE_GAP;
-    if (line_h < 14) line_h = 14;
-    y += line_h + FONT_LINE_GAP;
-    if (i < NUM_SAMPLES - 1) y += 3;
+    int lh = sz.h + FONT_LINE_GAP;
+    if (lh < 14) lh = 14;
+    y += lh + FONT_LINE_GAP;
+    if (i < NUM_SAMPLES-1) y += 3;
   }
   return (int16_t)(y + FONT_PAD);
 }
 
-// Called when font changes while detail is open: rebuild scroll content
 static void font_detail_reload(void) {
-  const SamplerFont *f = &s_fonts[s_current_font];
-  text_layer_set_text(s_font_header_layer, f->name);
-
+  text_layer_set_text(s_font_header_layer, s_fonts[s_current_font].name);
   Layer *root   = window_get_root_layer(s_font_detail_window);
   GRect  bounds = layer_get_bounds(root);
   int    w      = bounds.size.w;
   int    h      = bounds.size.h;
-
-  // Recalculate canvas height for new font
-  s_font_canvas_h = compute_font_canvas_height(w);
-  GRect scroll_bounds = GRect(0, FONT_HDR_H, w, h - FONT_HDR_H);
-  if (s_font_canvas_h < scroll_bounds.size.h)
-    s_font_canvas_h = (int16_t)scroll_bounds.size.h;
-
-  // Resize canvas and reset scroll to top
+  GRect  sb     = GRect(0, FONT_HDR_H, w, h-FONT_HDR_H);
+  s_font_canvas_h = compute_font_canvas_h(w);
+  if (s_font_canvas_h < sb.size.h) s_font_canvas_h = (int16_t)sb.size.h;
   layer_set_frame(s_font_canvas_layer, GRect(0,0,w,s_font_canvas_h));
-  scroll_layer_set_content_size(s_font_scroll_layer, GSize(w, s_font_canvas_h));
+  scroll_layer_set_content_size(s_font_scroll_layer, GSize(w,s_font_canvas_h));
   scroll_layer_set_content_offset(s_font_scroll_layer, GPointZero, false);
   layer_mark_dirty(s_font_canvas_layer);
 }
 
 static void font_detail_up(ClickRecognizerRef r, void *ctx) {
-  // If scrolled to top, go to previous font
-  GPoint offset = scroll_layer_get_content_offset(s_font_scroll_layer);
-  if (offset.y >= 0) {
-    // At top: go to previous font
-    if (s_current_font > 0) {
-      s_current_font--;
-      font_detail_reload();
-    }
+  GPoint off = scroll_layer_get_content_offset(s_font_scroll_layer);
+  if (off.y >= 0) {
+    if (s_current_font > 0) { s_current_font--; font_detail_reload(); }
   } else {
-    // Scroll up one step
     scroll_layer_scroll_up_click_handler(r, (void*)s_font_scroll_layer);
   }
 }
-
 static void font_detail_down(ClickRecognizerRef r, void *ctx) {
-  // If scrolled to bottom, go to next font
-  GPoint offset  = scroll_layer_get_content_offset(s_font_scroll_layer);
-  Layer  *root   = window_get_root_layer(s_font_detail_window);
-  GRect   bounds = layer_get_bounds(root);
-  int     vis_h  = bounds.size.h - FONT_HDR_H;
-  int     bottom = -offset.y + vis_h;
-  if (bottom >= s_font_canvas_h) {
-    // At bottom: advance to next font
-    if (s_current_font < NUM_FONTS - 1) {
-      s_current_font++;
-      font_detail_reload();
-    }
+  GPoint off  = scroll_layer_get_content_offset(s_font_scroll_layer);
+  Layer *root = window_get_root_layer(s_font_detail_window);
+  int vis_h   = layer_get_bounds(root).size.h - FONT_HDR_H;
+  if (-off.y + vis_h >= s_font_canvas_h) {
+    if (s_current_font < NUM_FONTS-1) { s_current_font++; font_detail_reload(); }
   } else {
     scroll_layer_scroll_down_click_handler(r, (void*)s_font_scroll_layer);
   }
 }
-
 static void font_detail_click_config(void *ctx) {
   window_single_repeating_click_subscribe(BUTTON_ID_UP,   150, font_detail_up);
   window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 150, font_detail_down);
@@ -310,222 +288,170 @@ static void font_detail_load(Window *window) {
   int    w      = bounds.size.w;
   int    h      = bounds.size.h;
 
-  // Pinned header
-  s_font_header_layer = text_layer_create(GRect(0, 0, w, FONT_HDR_H));
+  // Pinned header — full width, wraps on round
+  s_font_header_layer = text_layer_create(GRect(0,0,w,FONT_HDR_H));
   text_layer_set_background_color(s_font_header_layer, GColorBlack);
   text_layer_set_text_color(s_font_header_layer, GColorWhite);
   text_layer_set_font(s_font_header_layer,
     fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
   text_layer_set_text_alignment(s_font_header_layer, GTextAlignmentCenter);
+  text_layer_set_overflow_mode(s_font_header_layer, GTextOverflowModeWordWrap);
   text_layer_set_text(s_font_header_layer, s_fonts[s_current_font].name);
   layer_add_child(root, text_layer_get_layer(s_font_header_layer));
 
-  // ScrollLayer below header
-  GRect scroll_bounds = GRect(0, FONT_HDR_H, w, h - FONT_HDR_H);
-  s_font_canvas_h = compute_font_canvas_height(w);
-  if (s_font_canvas_h < scroll_bounds.size.h)
-    s_font_canvas_h = (int16_t)scroll_bounds.size.h;
+  GRect sb = GRect(0, FONT_HDR_H, w, h-FONT_HDR_H);
+  s_font_canvas_h = compute_font_canvas_h(w);
+  if (s_font_canvas_h < sb.size.h) s_font_canvas_h = (int16_t)sb.size.h;
 
-  s_font_scroll_layer = scroll_layer_create(scroll_bounds);
-  scroll_layer_set_content_size(s_font_scroll_layer, GSize(w, s_font_canvas_h));
-  // Don't let scroll layer steal click config — we handle UP/DOWN ourselves
+  s_font_scroll_layer = scroll_layer_create(sb);
+  scroll_layer_set_content_size(s_font_scroll_layer, GSize(w,s_font_canvas_h));
   layer_add_child(root, scroll_layer_get_layer(s_font_scroll_layer));
 
-  s_font_canvas_layer = layer_create(GRect(0, 0, w, s_font_canvas_h));
+  s_font_canvas_layer = layer_create(GRect(0,0,w,s_font_canvas_h));
   layer_set_update_proc(s_font_canvas_layer, font_canvas_draw);
   scroll_layer_add_child(s_font_scroll_layer, s_font_canvas_layer);
 
   window_set_click_config_provider(window, font_detail_click_config);
 }
-
 static void font_detail_unload(Window *window) {
   text_layer_destroy(s_font_header_layer);
   layer_destroy(s_font_canvas_layer);
   scroll_layer_destroy(s_font_scroll_layer);
-  // Sync font list selection
-  MenuIndex idx = {0, (uint16_t)s_current_font};
+  MenuIndex idx = {0,(uint16_t)s_current_font};
   menu_layer_set_selected_index(s_font_menu, idx, MenuRowAlignCenter, false);
 }
 
 // ============================================================
-// FONT LIST WINDOW
+// FONT LIST
 // ============================================================
-static uint16_t font_menu_num_rows(MenuLayer *ml, uint16_t sec, void *ctx) {
-  return (uint16_t)NUM_FONTS;
-}
-static int16_t font_menu_cell_height(MenuLayer *ml, MenuIndex *idx, void *ctx) {
-  return 36;
-}
+static uint16_t font_menu_num_rows(MenuLayer *ml,uint16_t s,void *c){return(uint16_t)NUM_FONTS;}
+static int16_t  font_menu_cell_h(MenuLayer *ml,MenuIndex *i,void *c){return 36;}
 static void font_menu_draw_row(GContext *ctx, const Layer *cell,
-                               MenuIndex *idx, void *cbctx) {
+                               MenuIndex *idx, void *c) {
   menu_cell_basic_draw(ctx, cell, s_fonts[idx->row].name, NULL, NULL);
 }
-static void font_menu_select(MenuLayer *ml, MenuIndex *idx, void *ctx) {
+static void font_menu_select(MenuLayer *ml, MenuIndex *idx, void *c) {
   s_current_font = idx->row;
   window_stack_push(s_font_detail_window, true);
 }
-static void font_window_load(Window *window) {
-  Layer *root = window_get_root_layer(window);
+static void font_window_load(Window *w) {
+  Layer *root = window_get_root_layer(w);
   s_font_menu = menu_layer_create(layer_get_bounds(root));
   menu_layer_set_callbacks(s_font_menu, NULL, (MenuLayerCallbacks){
-    .get_num_rows    = font_menu_num_rows,
-    .get_cell_height = font_menu_cell_height,
-    .draw_row        = font_menu_draw_row,
-    .select_click    = font_menu_select,
-  });
-  menu_layer_set_click_config_onto_window(s_font_menu, window);
+    .get_num_rows=font_menu_num_rows,.get_cell_height=font_menu_cell_h,
+    .draw_row=font_menu_draw_row,.select_click=font_menu_select});
+  menu_layer_set_click_config_onto_window(s_font_menu, w);
   layer_add_child(root, menu_layer_get_layer(s_font_menu));
 }
-static void font_window_unload(Window *window) {
-  menu_layer_destroy(s_font_menu);
-}
+static void font_window_unload(Window *w){menu_layer_destroy(s_font_menu);}
 
 // ============================================================
-// COLOR DETAIL WINDOW
-// UP/DOWN navigates between colors; back returns to list at same position.
+// COLOR DETAIL
 // ============================================================
 static void color_detail_refresh(void);
-
 static void color_fill_draw(Layer *layer, GContext *ctx) {
   const SamplerColor *c = &s_colors[s_current_color];
 #if defined(PBL_COLOR)
   graphics_context_set_fill_color(ctx, c->color);
 #else
-  GColor fill = (c->r==0) ? GColorBlack :
-                (c->r==1) ? GColorDarkGray :
-                (c->r==2) ? GColorLightGray : GColorWhite;
-  graphics_context_set_fill_color(ctx, fill);
+  GColor f=(c->r==0)?GColorBlack:(c->r==1)?GColorDarkGray:(c->r==2)?GColorLightGray:GColorWhite;
+  graphics_context_set_fill_color(ctx,f);
 #endif
   graphics_fill_rect(ctx, layer_get_bounds(layer), 0, GCornerNone);
 }
-
 static void color_detail_refresh(void) {
   const SamplerColor *c = &s_colors[s_current_color];
   static char buf[80];
-  snprintf(buf, sizeof(buf), "%s\n%s\nR:%d  G:%d  B:%d",
-           c->name, c->hex, (int)c->r, (int)c->g, (int)c->b);
+  snprintf(buf,sizeof(buf),"%s\n%s\nR:%d  G:%d  B:%d",
+           c->name,c->hex,(int)c->r,(int)c->g,(int)c->b);
   text_layer_set_text(s_color_info_layer, buf);
   text_layer_set_background_color(s_color_info_layer, GColorClear);
   text_layer_set_text_color(s_color_info_layer,
-    color_is_light(c) ? GColorBlack : GColorWhite);
+    color_is_light(c)?GColorBlack:GColorWhite);
   layer_mark_dirty(s_color_fill_layer);
 }
-
-static void color_detail_up(ClickRecognizerRef r, void *ctx) {
-  if (s_current_color > 0) {
-    s_current_color--;
-    color_detail_refresh();
-  }
+static void color_detail_up(ClickRecognizerRef r,void *c){
+  if(s_current_color>0){s_current_color--;color_detail_refresh();}
 }
-static void color_detail_down(ClickRecognizerRef r, void *ctx) {
-  if (s_current_color < NUM_COLORS - 1) {
-    s_current_color++;
-    color_detail_refresh();
-  }
+static void color_detail_down(ClickRecognizerRef r,void *c){
+  if(s_current_color<NUM_COLORS-1){s_current_color++;color_detail_refresh();}
 }
-static void color_detail_click_config(void *ctx) {
-  window_single_repeating_click_subscribe(BUTTON_ID_UP,   150, color_detail_up);
-  window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 150, color_detail_down);
+static void color_detail_click_config(void *c){
+  window_single_repeating_click_subscribe(BUTTON_ID_UP,150,color_detail_up);
+  window_single_repeating_click_subscribe(BUTTON_ID_DOWN,150,color_detail_down);
 }
-
 static void color_detail_load(Window *window) {
-  Layer *root   = window_get_root_layer(window);
-  GRect  bounds = layer_get_bounds(root);
-
+  Layer *root  = window_get_root_layer(window);
+  GRect  bounds= layer_get_bounds(root);
   s_color_fill_layer = layer_create(bounds);
   layer_set_update_proc(s_color_fill_layer, color_fill_draw);
   layer_add_child(root, s_color_fill_layer);
-
   int inset  = ROUND_INSET + 8;
   int info_h = 72;
-  GRect info_rect = GRect(inset, (bounds.size.h - info_h)/2,
-                          bounds.size.w - 2*inset, info_h);
-  s_color_info_layer = text_layer_create(info_rect);
+  s_color_info_layer = text_layer_create(
+    GRect(inset,(bounds.size.h-info_h)/2,bounds.size.w-2*inset,info_h));
   text_layer_set_font(s_color_info_layer,
     fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
   text_layer_set_text_alignment(s_color_info_layer, GTextAlignmentCenter);
   text_layer_set_overflow_mode(s_color_info_layer, GTextOverflowModeWordWrap);
   layer_add_child(root, text_layer_get_layer(s_color_info_layer));
-
   window_set_click_config_provider(window, color_detail_click_config);
   color_detail_refresh();
 }
 static void color_detail_unload(Window *window) {
   layer_destroy(s_color_fill_layer);
   text_layer_destroy(s_color_info_layer);
-  // Return list to same row
-  MenuIndex idx = {0, (uint16_t)s_current_color};
-  menu_layer_set_selected_index(s_color_menu, idx, MenuRowAlignCenter, false);
+  MenuIndex idx={0,(uint16_t)s_current_color};
+  menu_layer_set_selected_index(s_color_menu,idx,MenuRowAlignCenter,false);
 }
 
 // ============================================================
-// COLOR LIST WINDOW
+// COLOR LIST
 // ============================================================
-static uint16_t color_menu_num_rows(MenuLayer *ml, uint16_t sec, void *ctx) {
-  return (uint16_t)NUM_COLORS;
-}
-static int16_t color_menu_cell_height(MenuLayer *ml, MenuIndex *idx, void *ctx) {
-  return 30;
-}
+static uint16_t color_menu_num_rows(MenuLayer *ml,uint16_t s,void *c){return(uint16_t)NUM_COLORS;}
+static int16_t  color_menu_cell_h(MenuLayer *ml,MenuIndex *i,void *c){return 30;}
 static void color_menu_draw_row(GContext *ctx, const Layer *cell,
-                                MenuIndex *idx, void *cbctx) {
-  const SamplerColor *c  = &s_colors[idx->row];
+                                MenuIndex *idx, void *c) {
+  const SamplerColor *sc = &s_colors[idx->row];
   GRect bounds = layer_get_bounds(cell);
   bool  hi     = menu_cell_layer_is_highlighted(cell);
   int   inset  = ROUND_INSET;
-
-  // Swatch
-  int sw = 20, sh = 20;
-  int sy = (bounds.size.h - sh) / 2;
-  int sx = inset + 4;
-  GRect swatch = GRect(sx, sy, sw, sh);
-
+  int sw=20,sh=20,sy=(bounds.size.h-sh)/2,sx=inset+4;
+  GRect swatch=GRect(sx,sy,sw,sh);
 #if defined(PBL_COLOR)
-  // Always draw swatch in real color regardless of highlight
-  graphics_context_set_fill_color(ctx, c->color);
+  graphics_context_set_fill_color(ctx, sc->color);
   graphics_fill_rect(ctx, swatch, 2, GCornersAll);
-  graphics_context_set_stroke_color(ctx, hi ? GColorWhite : GColorDarkGray);
+  graphics_context_set_stroke_color(ctx, hi?GColorWhite:GColorDarkGray);
   graphics_context_set_stroke_width(ctx, 1);
   graphics_draw_round_rect(ctx, swatch, 2);
 #else
-  GColor fill = (c->r==0) ? GColorBlack :
-                (c->r==1) ? GColorDarkGray :
-                (c->r==2) ? GColorLightGray : GColorWhite;
-  graphics_context_set_fill_color(ctx, fill);
-  graphics_fill_rect(ctx, swatch, 0, GCornerNone);
-  graphics_context_set_stroke_color(ctx, hi ? GColorWhite : GColorBlack);
-  graphics_draw_rect(ctx, swatch);
+  GColor f=(sc->r==0)?GColorBlack:(sc->r==1)?GColorDarkGray:(sc->r==2)?GColorLightGray:GColorWhite;
+  graphics_context_set_fill_color(ctx,f);
+  graphics_fill_rect(ctx,swatch,0,GCornerNone);
+  graphics_context_set_stroke_color(ctx,hi?GColorWhite:GColorBlack);
+  graphics_draw_rect(ctx,swatch);
 #endif
-
-  // Name: use white text when highlighted (selected row)
-  GFont small = fonts_get_system_font(FONT_KEY_GOTHIC_14);
-  const char *short_name = c->name + 6;  // skip "GColor"
-  int tx = sx + sw + 6;
-  int tw = bounds.size.w - tx - inset - 4;
-  graphics_context_set_text_color(ctx, hi ? GColorWhite : GColorBlack);
-  graphics_draw_text(ctx, short_name, small,
-    GRect(tx, sy - 1, tw, bounds.size.h),
+  int tx=sx+sw+6, tw=bounds.size.w-tx-inset-4;
+  graphics_context_set_text_color(ctx, hi?GColorWhite:GColorBlack);
+  graphics_draw_text(ctx, sc->name+6,
+    fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    GRect(tx,sy-1,tw,bounds.size.h),
     GTextOverflowModeFill, GTextAlignmentLeft, NULL);
 }
-static void color_menu_select(MenuLayer *ml, MenuIndex *idx, void *ctx) {
-  s_current_color = idx->row;
-  window_stack_push(s_color_detail_window, true);
+static void color_menu_select(MenuLayer *ml,MenuIndex *idx,void *c){
+  s_current_color=idx->row;
+  window_stack_push(s_color_detail_window,true);
 }
-static void color_window_load(Window *window) {
-  Layer *root  = window_get_root_layer(window);
+static void color_window_load(Window *w) {
+  Layer *root = window_get_root_layer(w);
   s_color_menu = menu_layer_create(layer_get_bounds(root));
   menu_layer_set_callbacks(s_color_menu, NULL, (MenuLayerCallbacks){
-    .get_num_rows    = color_menu_num_rows,
-    .get_cell_height = color_menu_cell_height,
-    .draw_row        = color_menu_draw_row,
-    .select_click    = color_menu_select,
-  });
-  menu_layer_set_click_config_onto_window(s_color_menu, window);
+    .get_num_rows=color_menu_num_rows,.get_cell_height=color_menu_cell_h,
+    .draw_row=color_menu_draw_row,.select_click=color_menu_select});
+  menu_layer_set_click_config_onto_window(s_color_menu, w);
   layer_add_child(root, menu_layer_get_layer(s_color_menu));
 }
-static void color_window_unload(Window *window) {
-  menu_layer_destroy(s_color_menu);
-}
+static void color_window_unload(Window *w){menu_layer_destroy(s_color_menu);}
 
 // ============================================================
 // PLATFORM WINDOW
@@ -535,87 +461,69 @@ static void platform_window_load(Window *window) {
   GRect  bounds = layer_get_bounds(root);
   static char info[512];
 
-  // Platform name, watch model, and specs.
-  // Source: developer.repebble.com/guides/tools-and-resources/hardware-information
 #if defined(PBL_PLATFORM_EMERY)
-  snprintf(info, sizeof(info),
-    "Emery\nPebble Time 2\n"
-    "\nScreen\n200 x 228 px\n"
-    "\nShape\nRectangle\n"
-    "\nColor\n64-color\n"
+  snprintf(info,sizeof(info),
+    "Emery\nPebble Time 2\n\nScreen\n200 x 228 px\n"
+    "\nShape\nRectangle\n\nColor\n64-color\n"
     "\nHealth\nSteps, Sleep,\nHR, Calories\n"
-    "\n* LECO 60 sizes\n  only on Emery/Gabbro");
+    "\n* LECO 60 only\n  on Emery/Gabbro");
 #elif defined(PBL_PLATFORM_BASALT)
-  snprintf(info, sizeof(info),
-    "Basalt\nPebble Time / Time Steel\n"
-    "\nScreen\n144 x 168 px\n"
-    "\nShape\nRectangle\n"
-    "\nColor\n64-color\n"
+  snprintf(info,sizeof(info),
+    "Basalt\nPebble Time / Time Steel\n\nScreen\n144 x 168 px\n"
+    "\nShape\nRectangle\n\nColor\n64-color\n"
     "\nHealth\nSteps, Sleep,\nHR, Calories");
 #elif defined(PBL_PLATFORM_CHALK)
-  snprintf(info, sizeof(info),
-    "Chalk\nPebble Time Round\n"
-    "\nScreen\n180 x 180 px\n"
-    "\nShape\nRound\n"
-    "\nColor\n64-color\n"
+  snprintf(info,sizeof(info),
+    "Chalk\nPebble Time Round\n\nScreen\n180 x 180 px\n"
+    "\nShape\nRound\n\nColor\n64-color\n"
     "\nHealth\nSteps, Sleep,\nHR, Calories");
 #elif defined(PBL_PLATFORM_DIORITE)
-  snprintf(info, sizeof(info),
-    "Diorite\nPebble 2\n"
-    "\nScreen\n144 x 168 px\n"
-    "\nShape\nRectangle\n"
-    "\nColor\nBlack & White\n"
+  snprintf(info,sizeof(info),
+    "Diorite\nPebble 2\n\nScreen\n144 x 168 px\n"
+    "\nShape\nRectangle\n\nColor\nBlack & White\n"
     "\nHealth\nSteps, Sleep,\nHR, Calories");
 #elif defined(PBL_PLATFORM_APLITE)
-  snprintf(info, sizeof(info),
-    "Aplite\nPebble Classic / Steel\n"
-    "\nScreen\n144 x 168 px\n"
-    "\nShape\nRectangle\n"
-    "\nColor\nBlack & White\n"
+  snprintf(info,sizeof(info),
+    "Aplite\nPebble Classic / Steel\n\nScreen\n144 x 168 px\n"
+    "\nShape\nRectangle\n\nColor\nBlack & White\n"
     "\nHealth\nNone");
 #elif defined(PBL_PLATFORM_FLINT)
-  snprintf(info, sizeof(info),
-    "Flint\nPebble 2 Duo\n"
-    "\nScreen\n144 x 168 px\n"
-    "\nShape\nRectangle\n"
-    "\nColor\nBlack & White\n"
+  snprintf(info,sizeof(info),
+    "Flint\nPebble 2 Duo\n\nScreen\n144 x 168 px\n"
+    "\nShape\nRectangle\n\nColor\nBlack & White\n"
     "\nHealth\nSteps, Sleep,\nCalories (no HR)");
 #elif defined(PBL_PLATFORM_GABBRO)
-  snprintf(info, sizeof(info),
-    "Gabbro\nPebble Round 2\n"
-    "\nScreen\n260 x 260 px\n"
-    "\nShape\nRound\n"
-    "\nColor\n64-color\n"
+  snprintf(info,sizeof(info),
+    "Gabbro\nPebble Round 2\n\nScreen\n260 x 260 px\n"
+    "\nShape\nRound\n\nColor\n64-color\n"
     "\nHealth\nSteps, Sleep,\nHR, Calories\n"
-    "\n* LECO 60 sizes\n  only on Emery/Gabbro");
+    "\n* LECO 60 only\n  on Emery/Gabbro");
 #else
-  snprintf(info, sizeof(info), "Unknown platform");
+  snprintf(info,sizeof(info),"Unknown platform");
 #endif
 
   int hpad   = ROUND_INSET + 6;
-  int text_w = bounds.size.w - 2 * hpad;
+  int text_w = bounds.size.w - 2*hpad;
   GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   GSize sz   = graphics_text_layout_get_content_size(
-    info, font,
-    GRect(0,0,text_w,2000),
-    GTextOverflowModeWordWrap, GTextAlignmentLeft);
+    info,font,GRect(0,0,text_w,2000),GTextOverflowModeWordWrap,GTextAlignmentLeft);
   int content_h = sz.h + 24;
   if (content_h < bounds.size.h) content_h = bounds.size.h;
 
   s_platform_scroll = scroll_layer_create(bounds);
-  scroll_layer_set_content_size(s_platform_scroll, GSize(bounds.size.w, content_h));
-  scroll_layer_set_click_config_onto_window(s_platform_scroll, window);
+  scroll_layer_set_content_size(s_platform_scroll,GSize(bounds.size.w,content_h));
+  scroll_layer_set_click_config_onto_window(s_platform_scroll,window);
   layer_add_child(root, scroll_layer_get_layer(s_platform_scroll));
 
   s_platform_text_layer = text_layer_create(
-    GRect(hpad, 8, text_w, content_h - 8));
+    GRect(hpad,8,text_w,content_h-8));
   text_layer_set_font(s_platform_text_layer, font);
   text_layer_set_overflow_mode(s_platform_text_layer, GTextOverflowModeWordWrap);
   text_layer_set_text(s_platform_text_layer, info);
   scroll_layer_add_child(s_platform_scroll,
     text_layer_get_layer(s_platform_text_layer));
 }
-static void platform_window_unload(Window *window) {
+static void platform_window_unload(Window *w){
   text_layer_destroy(s_platform_text_layer);
   scroll_layer_destroy(s_platform_scroll);
 }
@@ -623,68 +531,59 @@ static void platform_window_unload(Window *window) {
 // ============================================================
 // MAIN MENU
 // ============================================================
-static uint16_t main_menu_num_rows(MenuLayer *ml, uint16_t sec, void *ctx) {
-  return 3;
-}
-static void main_menu_draw_row(GContext *ctx, const Layer *cell,
-                               MenuIndex *idx, void *cbctx) {
-  static const char *titles[] = { "Fonts", "Colors", "Platform" };
-  static const char *subs[]   = {
+static uint16_t main_menu_num_rows(MenuLayer *ml,uint16_t s,void *c){return 3;}
+static void main_menu_draw_row(GContext *ctx,const Layer *cell,
+                               MenuIndex *idx,void *c){
+  static const char *T[]=  {"Fonts","Colors","Platform"};
+  static const char *S[] = {
     "System font specimen",
 #if defined(PBL_COLOR)
     "64-color palette",
 #else
     "4 B&W levels",
 #endif
-    "Device info",
+    "Device info"
   };
-  menu_cell_basic_draw(ctx, cell, titles[idx->row], subs[idx->row], NULL);
+  menu_cell_basic_draw(ctx,cell,T[idx->row],S[idx->row],NULL);
 }
-static void main_menu_select(MenuLayer *ml, MenuIndex *idx, void *ctx) {
-  switch (idx->row) {
-    case 0: window_stack_push(s_font_window,     true); break;
-    case 1: window_stack_push(s_color_window,    true); break;
-    case 2: window_stack_push(s_platform_window, true); break;
+static void main_menu_select(MenuLayer *ml,MenuIndex *idx,void *c){
+  switch(idx->row){
+    case 0:window_stack_push(s_font_window,true);break;
+    case 1:window_stack_push(s_color_window,true);break;
+    case 2:window_stack_push(s_platform_window,true);break;
   }
 }
-static void main_window_load(Window *window) {
-  Layer *root  = window_get_root_layer(window);
-  s_main_menu  = menu_layer_create(layer_get_bounds(root));
-  menu_layer_set_callbacks(s_main_menu, NULL, (MenuLayerCallbacks){
-    .get_num_rows = main_menu_num_rows,
-    .draw_row     = main_menu_draw_row,
-    .select_click = main_menu_select,
-  });
-  menu_layer_set_click_config_onto_window(s_main_menu, window);
-  layer_add_child(root, menu_layer_get_layer(s_main_menu));
+static void main_window_load(Window *w){
+  Layer *root=window_get_root_layer(w);
+  s_main_menu=menu_layer_create(layer_get_bounds(root));
+  menu_layer_set_callbacks(s_main_menu,NULL,(MenuLayerCallbacks){
+    .get_num_rows=main_menu_num_rows,.draw_row=main_menu_draw_row,
+    .select_click=main_menu_select});
+  menu_layer_set_click_config_onto_window(s_main_menu,w);
+  layer_add_child(root,menu_layer_get_layer(s_main_menu));
 }
-static void main_window_unload(Window *window) {
-  menu_layer_destroy(s_main_menu);
-}
+static void main_window_unload(Window *w){menu_layer_destroy(s_main_menu);}
 
 // ============================================================
 // APP LIFECYCLE
 // ============================================================
-static Window *make_window(WindowHandler load, WindowHandler unload) {
-  Window *w = window_create();
-  window_set_window_handlers(w, (WindowHandlers){ .load=load, .unload=unload });
+static Window *make_window(WindowHandler load,WindowHandler unload){
+  Window *w=window_create();
+  window_set_window_handlers(w,(WindowHandlers){.load=load,.unload=unload});
   return w;
 }
-static void init(void) {
-  s_main_window         = make_window(main_window_load,     main_window_unload);
-  s_font_window         = make_window(font_window_load,     font_window_unload);
-  s_font_detail_window  = make_window(font_detail_load,     font_detail_unload);
-  s_color_window        = make_window(color_window_load,    color_window_unload);
-  s_color_detail_window = make_window(color_detail_load,    color_detail_unload);
-  s_platform_window     = make_window(platform_window_load, platform_window_unload);
-  window_stack_push(s_main_window, true);
+static void init(void){
+  s_main_window        =make_window(main_window_load,main_window_unload);
+  s_font_window        =make_window(font_window_load,font_window_unload);
+  s_font_detail_window =make_window(font_detail_load,font_detail_unload);
+  s_color_window       =make_window(color_window_load,color_window_unload);
+  s_color_detail_window=make_window(color_detail_load,color_detail_unload);
+  s_platform_window    =make_window(platform_window_load,platform_window_unload);
+  window_stack_push(s_main_window,true);
 }
-static void deinit(void) {
-  window_destroy(s_main_window);
-  window_destroy(s_font_window);
-  window_destroy(s_font_detail_window);
-  window_destroy(s_color_window);
-  window_destroy(s_color_detail_window);
-  window_destroy(s_platform_window);
+static void deinit(void){
+  window_destroy(s_main_window);window_destroy(s_font_window);
+  window_destroy(s_font_detail_window);window_destroy(s_color_window);
+  window_destroy(s_color_detail_window);window_destroy(s_platform_window);
 }
-int main(void) { init(); app_event_loop(); deinit(); }
+int main(void){init();app_event_loop();deinit();}

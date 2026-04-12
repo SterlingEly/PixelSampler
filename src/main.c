@@ -1,20 +1,21 @@
 #include <pebble.h>
 
 // ============================================================
-// Pixel Sampler — main.c  v1.4
+// Pixel Sampler — main.c  v1.5
 // ============================================================
 
 // Round-screen horizontal inset.
-// For scrolling content we must use the *narrowest* chord (near top/bottom
-// of the circle) as our fixed inset, otherwise text gets clipped there.
-// chalk  = 180px diameter -> safe inset ~30px each side
-// gabbro = 260px diameter -> safe inset ~40px each side
+// Must match the narrowest chord (near poles) so scrolling content
+// never clips. chalk=180px->30px, gabbro=260px->40px.
 #if defined(PBL_PLATFORM_GABBRO)
-#  define ROUND_INSET 40
+#  define ROUND_INSET    40
+#  define ROUND_TOP_PAD  36   // extra top padding so first text row clears the circle
 #elif defined(PBL_ROUND)
-#  define ROUND_INSET 30
+#  define ROUND_INSET    30
+#  define ROUND_TOP_PAD  26
 #else
-#  define ROUND_INSET 0
+#  define ROUND_INSET     0
+#  define ROUND_TOP_PAD   0
 #endif
 
 // ============================================================
@@ -57,7 +58,7 @@ static const SamplerFont s_fonts[] = {
 #define NUM_FONTS ((int)(sizeof(s_fonts)/sizeof(s_fonts[0])))
 
 static const char *s_samples[] = {
-  "09:42", "0123456789", "AaBbCcDd", "The quick fox", "!@#$%^&*()",
+  "09:42", "0123456789", "AaBbCcDd", "The quick fox", "!@#$%&*()",
 };
 #define NUM_SAMPLES 5
 
@@ -185,13 +186,15 @@ static bool color_is_light(const SamplerColor *c) {
 
 // ============================================================
 // FONT DETAIL
+// Pinned header (inset on round) + ScrollLayer of specimens.
+// UP/DOWN: scroll, then advance to prev/next font at boundaries.
 // ============================================================
-// Header height: tall enough for long names to wrap on round screens.
-// On round we allow 2 lines (28px); on rect 1 line is usually enough (20px).
+// Header: inset horizontally on round so text clears the circle edge.
+// Two lines tall on round to accommodate long font names.
 #if defined(PBL_ROUND)
-#  define FONT_HDR_H 28
+#  define FONT_HDR_H  32
 #else
-#  define FONT_HDR_H 20
+#  define FONT_HDR_H  20
 #endif
 #define FONT_PAD       6
 #define FONT_LINE_GAP  4
@@ -288,8 +291,10 @@ static void font_detail_load(Window *window) {
   int    w      = bounds.size.w;
   int    h      = bounds.size.h;
 
-  // Pinned header — full width, wraps on round
-  s_font_header_layer = text_layer_create(GRect(0,0,w,FONT_HDR_H));
+  // Pinned header: inset horizontally on round so text clears circle edge
+  int hdr_x = ROUND_INSET;
+  int hdr_w = w - 2 * ROUND_INSET;
+  s_font_header_layer = text_layer_create(GRect(0, 0, w, FONT_HDR_H));
   text_layer_set_background_color(s_font_header_layer, GColorBlack);
   text_layer_set_text_color(s_font_header_layer, GColorWhite);
   text_layer_set_font(s_font_header_layer,
@@ -297,6 +302,23 @@ static void font_detail_load(Window *window) {
   text_layer_set_text_alignment(s_font_header_layer, GTextAlignmentCenter);
   text_layer_set_overflow_mode(s_font_header_layer, GTextOverflowModeWordWrap);
   text_layer_set_text(s_font_header_layer, s_fonts[s_current_font].name);
+  // On round: restrict the TextLayer's drawable rect to the inset area
+  // by setting the frame to full width but keeping text bounds inset.
+  // We do this by creating the layer at the inset position.
+  layer_destroy(text_layer_get_layer(s_font_header_layer));  // discard just-created
+  s_font_header_layer = text_layer_create(GRect(hdr_x, 0, hdr_w, FONT_HDR_H));
+  text_layer_set_background_color(s_font_header_layer, GColorBlack);
+  text_layer_set_text_color(s_font_header_layer, GColorWhite);
+  text_layer_set_font(s_font_header_layer,
+    fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
+  text_layer_set_text_alignment(s_font_header_layer, GTextAlignmentCenter);
+  text_layer_set_overflow_mode(s_font_header_layer, GTextOverflowModeWordWrap);
+  text_layer_set_text(s_font_header_layer, s_fonts[s_current_font].name);
+
+  // Black fill behind header (full width) so corners aren't bare on round
+  // We achieve this by setting window background black and relying on it.
+  window_set_background_color(window, GColorBlack);
+
   layer_add_child(root, text_layer_get_layer(s_font_header_layer));
 
   GRect sb = GRect(0, FONT_HDR_H, w, h-FONT_HDR_H);
@@ -317,6 +339,7 @@ static void font_detail_unload(Window *window) {
   text_layer_destroy(s_font_header_layer);
   layer_destroy(s_font_canvas_layer);
   scroll_layer_destroy(s_font_scroll_layer);
+  window_set_background_color(window, GColorWhite);
   MenuIndex idx = {0,(uint16_t)s_current_font};
   menu_layer_set_selected_index(s_font_menu, idx, MenuRowAlignCenter, false);
 }
@@ -347,6 +370,7 @@ static void font_window_unload(Window *w){menu_layer_destroy(s_font_menu);}
 
 // ============================================================
 // COLOR DETAIL
+// UP/DOWN navigates colors; back returns list to same position.
 // ============================================================
 static void color_detail_refresh(void);
 static void color_fill_draw(Layer *layer, GContext *ctx) {
@@ -407,17 +431,22 @@ static void color_detail_unload(Window *window) {
 
 // ============================================================
 // COLOR LIST
+// Row height 34px to give long names one clean wrap if needed.
 // ============================================================
 static uint16_t color_menu_num_rows(MenuLayer *ml,uint16_t s,void *c){return(uint16_t)NUM_COLORS;}
-static int16_t  color_menu_cell_h(MenuLayer *ml,MenuIndex *i,void *c){return 30;}
+static int16_t  color_menu_cell_h(MenuLayer *ml,MenuIndex *i,void *c){return 34;}
 static void color_menu_draw_row(GContext *ctx, const Layer *cell,
                                 MenuIndex *idx, void *c) {
   const SamplerColor *sc = &s_colors[idx->row];
   GRect bounds = layer_get_bounds(cell);
   bool  hi     = menu_cell_layer_is_highlighted(cell);
   int   inset  = ROUND_INSET;
-  int sw=20,sh=20,sy=(bounds.size.h-sh)/2,sx=inset+4;
-  GRect swatch=GRect(sx,sy,sw,sh);
+  // Smaller swatch on round to give name more room
+  int sw = (ROUND_INSET > 0) ? 16 : 20;
+  int sh = sw;
+  int sy = (bounds.size.h - sh) / 2;
+  int sx = inset + 4;
+  GRect swatch = GRect(sx, sy, sw, sh);
 #if defined(PBL_COLOR)
   graphics_context_set_fill_color(ctx, sc->color);
   graphics_fill_rect(ctx, swatch, 2, GCornersAll);
@@ -431,12 +460,16 @@ static void color_menu_draw_row(GContext *ctx, const Layer *cell,
   graphics_context_set_stroke_color(ctx,hi?GColorWhite:GColorBlack);
   graphics_draw_rect(ctx,swatch);
 #endif
-  int tx=sx+sw+6, tw=bounds.size.w-tx-inset-4;
+  int tx = sx + sw + 5;
+  int tw = bounds.size.w - tx - inset - 2;
   graphics_context_set_text_color(ctx, hi?GColorWhite:GColorBlack);
-  graphics_draw_text(ctx, sc->name+6,
-    fonts_get_system_font(FONT_KEY_GOTHIC_14),
-    GRect(tx,sy-1,tw,bounds.size.h),
-    GTextOverflowModeFill, GTextAlignmentLeft, NULL);
+  // Use smaller font on round to reduce wrapping of long names
+  GFont name_font = fonts_get_system_font(
+    (ROUND_INSET > 0) ? FONT_KEY_GOTHIC_14 : FONT_KEY_GOTHIC_14);
+  graphics_draw_text(ctx, sc->name+6,  // skip "GColor"
+    name_font,
+    GRect(tx, sy-1, tw, bounds.size.h),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 }
 static void color_menu_select(MenuLayer *ml,MenuIndex *idx,void *c){
   s_current_color=idx->row;
@@ -455,12 +488,14 @@ static void color_window_unload(Window *w){menu_layer_destroy(s_color_menu);}
 
 // ============================================================
 // PLATFORM WINDOW
+// Scrollable text. Top padding on round prevents first line clipping.
 // ============================================================
 static void platform_window_load(Window *window) {
   Layer *root   = window_get_root_layer(window);
   GRect  bounds = layer_get_bounds(root);
   static char info[512];
 
+  // Source: developer.repebble.com/guides/tools-and-resources/hardware-information
 #if defined(PBL_PLATFORM_EMERY)
   snprintf(info,sizeof(info),
     "Emery\nPebble Time 2\n\nScreen\n200 x 228 px\n"
@@ -502,21 +537,24 @@ static void platform_window_load(Window *window) {
   snprintf(info,sizeof(info),"Unknown platform");
 #endif
 
-  int hpad   = ROUND_INSET + 6;
-  int text_w = bounds.size.w - 2*hpad;
-  GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-  GSize sz   = graphics_text_layout_get_content_size(
-    info,font,GRect(0,0,text_w,2000),GTextOverflowModeWordWrap,GTextAlignmentLeft);
-  int content_h = sz.h + 24;
+  int hpad    = ROUND_INSET + 6;
+  int top_pad = ROUND_TOP_PAD + 4;   // extra top space on round
+  int text_w  = bounds.size.w - 2 * hpad;
+  GFont font  = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
+  GSize sz    = graphics_text_layout_get_content_size(
+    info, font, GRect(0,0,text_w,2000),
+    GTextOverflowModeWordWrap, GTextAlignmentLeft);
+  int content_h = top_pad + sz.h + 24;
   if (content_h < bounds.size.h) content_h = bounds.size.h;
 
   s_platform_scroll = scroll_layer_create(bounds);
-  scroll_layer_set_content_size(s_platform_scroll,GSize(bounds.size.w,content_h));
-  scroll_layer_set_click_config_onto_window(s_platform_scroll,window);
+  scroll_layer_set_content_size(s_platform_scroll,
+    GSize(bounds.size.w, content_h));
+  scroll_layer_set_click_config_onto_window(s_platform_scroll, window);
   layer_add_child(root, scroll_layer_get_layer(s_platform_scroll));
 
   s_platform_text_layer = text_layer_create(
-    GRect(hpad,8,text_w,content_h-8));
+    GRect(hpad, top_pad, text_w, content_h - top_pad));
   text_layer_set_font(s_platform_text_layer, font);
   text_layer_set_overflow_mode(s_platform_text_layer, GTextOverflowModeWordWrap);
   text_layer_set_text(s_platform_text_layer, info);
@@ -534,7 +572,7 @@ static void platform_window_unload(Window *w){
 static uint16_t main_menu_num_rows(MenuLayer *ml,uint16_t s,void *c){return 3;}
 static void main_menu_draw_row(GContext *ctx,const Layer *cell,
                                MenuIndex *idx,void *c){
-  static const char *T[]=  {"Fonts","Colors","Platform"};
+  static const char *T[] = {"Fonts","Colors","Platform"};
   static const char *S[] = {
     "System font specimen",
 #if defined(PBL_COLOR)

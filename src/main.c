@@ -158,6 +158,7 @@ static MenuLayer *s_main_menu;
 static Window      *s_font_window;
 static MenuLayer   *s_font_menu;
 static Window      *s_font_detail_window;
+static Layer       *s_font_header_bg;    // full-width black fill behind header
 static TextLayer   *s_font_header_layer;
 static ScrollLayer *s_font_scroll_layer;
 static Layer       *s_font_canvas_layer;
@@ -184,16 +185,25 @@ static bool color_is_light(const SamplerColor *c) {
 
 // ============================================================
 // FONT DETAIL
-// Pinned header (black bar, inset on round) above a ScrollLayer.
+// Pinned header + ScrollLayer of specimens.
+// Header: full-width black bg layer + inset single-line TextLayer.
+// On round: text inset to safe zone, truncated with ellipsis.
 // UP/DOWN: scroll within page, then advance font at boundaries.
 // ============================================================
+// Header height. On round, push it down enough that text sits
+// in the safe zone (ROUND_TOP_PAD worth of vertical clearance).
 #if defined(PBL_ROUND)
-#  define FONT_HDR_H  32   // two lines on round
+#  define FONT_HDR_H  (ROUND_TOP_PAD + 14)  // top padding + one text line
 #else
 #  define FONT_HDR_H  20
 #endif
 #define FONT_PAD      6
 #define FONT_LINE_GAP 4
+
+static void font_header_bg_draw(Layer *layer, GContext *ctx) {
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, layer_get_bounds(layer), 0, GCornerNone);
+}
 
 static void font_detail_reload(void);
 
@@ -282,18 +292,26 @@ static void font_detail_load(Window *window) {
   GRect  b    = layer_get_bounds(root);
   int    w = b.size.w, h = b.size.h;
 
-  // Pinned header: inset on round so text clears circle edges.
-  // The header TextLayer's own black background colour provides the black bar;
-  // no window background colour change needed.
-  int hdr_x = ROUND_INSET;
-  int hdr_w = w - 2 * ROUND_INSET;
-  s_font_header_layer = text_layer_create(GRect(hdr_x, 0, hdr_w, FONT_HDR_H));
-  text_layer_set_background_color(s_font_header_layer, GColorBlack);
+  // Full-width black background layer covers the entire header strip,
+  // including the corners on round screens.
+  s_font_header_bg = layer_create(GRect(0, 0, w, FONT_HDR_H));
+  layer_set_update_proc(s_font_header_bg, font_header_bg_draw);
+  layer_add_child(root, s_font_header_bg);
+
+  // Single-line text label, inset on round, truncated with ellipsis.
+  // Positioned to sit in the safe zone (ROUND_TOP_PAD from top).
+  int txt_y = ROUND_TOP_PAD;          // 0 on rect, safe-zone offset on round
+  int txt_x = ROUND_INSET + 2;
+  int txt_w = w - 2 * (ROUND_INSET + 2);
+  s_font_header_layer = text_layer_create(
+    GRect(txt_x, txt_y, txt_w, FONT_HDR_H - txt_y));
+  text_layer_set_background_color(s_font_header_layer, GColorClear);
   text_layer_set_text_color(s_font_header_layer, GColorWhite);
   text_layer_set_font(s_font_header_layer,
     fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
   text_layer_set_text_alignment(s_font_header_layer, GTextAlignmentCenter);
-  text_layer_set_overflow_mode(s_font_header_layer, GTextOverflowModeWordWrap);
+  text_layer_set_overflow_mode(s_font_header_layer,
+    GTextOverflowModeTrailingEllipsis);
   text_layer_set_text(s_font_header_layer, s_fonts[s_current_font].name);
   layer_add_child(root, text_layer_get_layer(s_font_header_layer));
 
@@ -313,6 +331,7 @@ static void font_detail_load(Window *window) {
   window_set_click_config_provider(window, font_detail_click_config);
 }
 static void font_detail_unload(Window *window) {
+  layer_destroy(s_font_header_bg);
   text_layer_destroy(s_font_header_layer);
   layer_destroy(s_font_canvas_layer);
   scroll_layer_destroy(s_font_scroll_layer);

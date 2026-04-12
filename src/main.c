@@ -1,7 +1,7 @@
 #include <pebble.h>
 
 // ============================================================
-// Pixel Sampler — main.c  v1.6
+// Pixel Sampler — main.c  v1.0
 // ============================================================
 
 // Round-screen insets.
@@ -282,11 +282,9 @@ static void font_detail_load(Window *window) {
   GRect  b    = layer_get_bounds(root);
   int    w = b.size.w, h = b.size.h;
 
-  // Black window background fills the full-width black strip behind the header
-  // on round screens where the header TextLayer is narrower than the screen.
-  window_set_background_color(window, GColorBlack);
-
   // Pinned header: inset on round so text clears circle edges.
+  // The header TextLayer's own black background colour provides the black bar;
+  // no window background colour change needed.
   int hdr_x = ROUND_INSET;
   int hdr_w = w - 2 * ROUND_INSET;
   s_font_header_layer = text_layer_create(GRect(hdr_x, 0, hdr_w, FONT_HDR_H));
@@ -318,7 +316,6 @@ static void font_detail_unload(Window *window) {
   text_layer_destroy(s_font_header_layer);
   layer_destroy(s_font_canvas_layer);
   scroll_layer_destroy(s_font_scroll_layer);
-  window_set_background_color(window, GColorWhite);
   MenuIndex idx = {0, (uint16_t)s_current_font};
   menu_layer_set_selected_index(s_font_menu, idx, MenuRowAlignCenter, false);
 }
@@ -421,7 +418,6 @@ static void color_menu_draw_row(GContext *ctx,const Layer *cell,MenuIndex *idx,v
   GRect  bounds = layer_get_bounds(cell);
   bool   hi     = menu_cell_layer_is_highlighted(cell);
   int    inset  = ROUND_INSET;
-  // Slightly smaller swatch on round to give name more width
   int    sw = (inset > 0) ? 16 : 20;
   int    sh = sw;
   int    sy = (bounds.size.h - sh) / 2;
@@ -444,7 +440,7 @@ static void color_menu_draw_row(GContext *ctx,const Layer *cell,MenuIndex *idx,v
   int    tx    = sx + sw + 5;
   int    tw    = bounds.size.w - tx - inset - 2;
   graphics_context_set_text_color(ctx, hi ? GColorWhite : GColorBlack);
-  graphics_draw_text(ctx, sc->name + 6,  // skip "GColor" prefix
+  graphics_draw_text(ctx, sc->name + 6,
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(tx, sy-1, tw, bounds.size.h),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);

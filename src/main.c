@@ -158,7 +158,7 @@ static MenuLayer *s_main_menu;
 static Window      *s_font_window;
 static MenuLayer   *s_font_menu;
 static Window      *s_font_detail_window;
-static Layer       *s_font_header_bg;    // full-width black fill behind header
+static Layer       *s_font_header_bg;
 static TextLayer   *s_font_header_layer;
 static ScrollLayer *s_font_scroll_layer;
 static Layer       *s_font_canvas_layer;
@@ -185,17 +185,18 @@ static bool color_is_light(const SamplerColor *c) {
 
 // ============================================================
 // FONT DETAIL
-// Pinned header + ScrollLayer of specimens.
-// Header: full-width black bg layer + inset single-line TextLayer.
-// On round: text inset to safe zone, truncated with ellipsis.
+// Full-width black bg layer + inset single-line TextLayer.
 // UP/DOWN: scroll within page, then advance font at boundaries.
 // ============================================================
-// Header height. On round, push it down enough that text sits
-// in the safe zone (ROUND_TOP_PAD worth of vertical clearance).
+// Header height = safe-zone offset + one text line (14px) + 2px breathing room.
+// The text is positioned at (ROUND_TOP_PAD - 2) so it sits 2px higher than
+// the exact bottom of the safe zone, matching the visual weight of rect.
 #if defined(PBL_ROUND)
-#  define FONT_HDR_H  (ROUND_TOP_PAD + 14)  // top padding + one text line
+#  define FONT_HDR_H     (ROUND_TOP_PAD + 12)
+#  define FONT_HDR_TXT_Y (ROUND_TOP_PAD - 2)
 #else
-#  define FONT_HDR_H  20
+#  define FONT_HDR_H     20
+#  define FONT_HDR_TXT_Y 3
 #endif
 #define FONT_PAD      6
 #define FONT_LINE_GAP 4
@@ -292,17 +293,15 @@ static void font_detail_load(Window *window) {
   GRect  b    = layer_get_bounds(root);
   int    w = b.size.w, h = b.size.h;
 
-  // Full-width black background layer covers the entire header strip,
-  // including the corners on round screens.
+  // Full-width black bg covers corners on round screens
   s_font_header_bg = layer_create(GRect(0, 0, w, FONT_HDR_H));
   layer_set_update_proc(s_font_header_bg, font_header_bg_draw);
   layer_add_child(root, s_font_header_bg);
 
-  // Single-line text label, inset on round, truncated with ellipsis.
-  // Positioned to sit in the safe zone (ROUND_TOP_PAD from top).
-  int txt_y = ROUND_TOP_PAD;          // 0 on rect, safe-zone offset on round
+  // Single-line label, inset on round, 2px up from safe-zone bottom
   int txt_x = ROUND_INSET + 2;
   int txt_w = w - 2 * (ROUND_INSET + 2);
+  int txt_y = FONT_HDR_TXT_Y;
   s_font_header_layer = text_layer_create(
     GRect(txt_x, txt_y, txt_w, FONT_HDR_H - txt_y));
   text_layer_set_background_color(s_font_header_layer, GColorClear);
@@ -315,7 +314,6 @@ static void font_detail_load(Window *window) {
   text_layer_set_text(s_font_header_layer, s_fonts[s_current_font].name);
   layer_add_child(root, text_layer_get_layer(s_font_header_layer));
 
-  // ScrollLayer for specimen content
   int vis_h = h - FONT_HDR_H;
   s_font_canvas_h = compute_font_canvas_h(w);
   if (s_font_canvas_h < vis_h) s_font_canvas_h = (int16_t)vis_h;
@@ -340,12 +338,19 @@ static void font_detail_unload(Window *window) {
 }
 
 // ============================================================
-// FONT LIST
+// FONT LIST  (Gothic 14 rows to match color list density)
 // ============================================================
 static uint16_t font_menu_num_rows(MenuLayer *ml,uint16_t s,void *c){return(uint16_t)NUM_FONTS;}
-static int16_t  font_menu_cell_h(MenuLayer *ml,MenuIndex *i,void *c){return 36;}
+static int16_t  font_menu_cell_h(MenuLayer *ml,MenuIndex *i,void *c){return 34;}
 static void font_menu_draw_row(GContext *ctx,const Layer *cell,MenuIndex *idx,void *c) {
-  menu_cell_basic_draw(ctx, cell, s_fonts[idx->row].name, NULL, NULL);
+  GRect  b  = layer_get_bounds(cell);
+  bool   hi = menu_cell_layer_is_highlighted(cell);
+  int    inset = ROUND_INSET + 4;
+  graphics_context_set_text_color(ctx, hi ? GColorWhite : GColorBlack);
+  graphics_draw_text(ctx, s_fonts[idx->row].name,
+    fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    GRect(inset, (b.size.h - 14) / 2, b.size.w - 2*inset, 16),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 }
 static void font_menu_select(MenuLayer *ml,MenuIndex *idx,void *c) {
   s_current_font = idx->row;
@@ -364,8 +369,6 @@ static void font_window_unload(Window *w){menu_layer_destroy(s_font_menu);}
 
 // ============================================================
 // COLOR DETAIL
-// Full-screen fill. UP/DOWN navigates colors.
-// Back returns list to the same row.
 // ============================================================
 static void color_detail_refresh(void);
 static void color_fill_draw(Layer *layer, GContext *ctx) {
@@ -427,8 +430,7 @@ static void color_detail_unload(Window *window) {
 }
 
 // ============================================================
-// COLOR LIST
-// 34px rows; names truncated with ellipsis to fit on round.
+// COLOR LIST  (34px rows, names truncated with ellipsis)
 // ============================================================
 static uint16_t color_menu_num_rows(MenuLayer *ml,uint16_t s,void *c){return(uint16_t)NUM_COLORS;}
 static int16_t  color_menu_cell_h(MenuLayer *ml,MenuIndex *i,void *c){return 34;}
@@ -481,8 +483,15 @@ static void color_window_unload(Window *w){menu_layer_destroy(s_color_menu);}
 
 // ============================================================
 // PLATFORM WINDOW
-// Scrollable; top padding on round keeps first line clear of the circle.
-// Source: developer.repebble.com/guides/tools-and-resources/hardware-information
+// Source: developer.rebble.io/guides/tools-and-resources/hardware-information/
+// Health capabilities per platform:
+//   Aplite  (Classic/Steel):   no health
+//   Basalt  (Time/Steel):      steps, sleep, calories  -- NO HR
+//   Chalk   (Time Round):      steps, sleep, calories  -- NO HR
+//   Diorite (Pebble 2):        steps, sleep, calories, HR (not SE model)
+//   Flint   (Pebble 2 Duo):    steps, sleep, calories  -- NO HR
+//   Emery   (Time 2):          steps, sleep, calories, HR
+//   Gabbro  (Round 2):         steps, sleep, calories, HR
 // ============================================================
 static void platform_window_load(Window *window) {
   Layer *root  = window_get_root_layer(window);
@@ -492,23 +501,24 @@ static void platform_window_load(Window *window) {
   snprintf(info,sizeof(info),
     "Emery\nPebble Time 2\n\nScreen\n200 x 228 px\n"
     "\nShape\nRectangle\n\nColor\n64-color\n"
-    "\nHealth\nSteps, Sleep,\nHR, Calories\n"
+    "\nHealth\nSteps, Sleep,\nCalories, HR\n"
     "\n* LECO 60 only on\n  Emery / Gabbro");
 #elif defined(PBL_PLATFORM_BASALT)
   snprintf(info,sizeof(info),
     "Basalt\nPebble Time / Steel\n\nScreen\n144 x 168 px\n"
     "\nShape\nRectangle\n\nColor\n64-color\n"
-    "\nHealth\nSteps, Sleep,\nHR, Calories");
+    "\nHealth\nSteps, Sleep,\nCalories (no HR)");
 #elif defined(PBL_PLATFORM_CHALK)
   snprintf(info,sizeof(info),
     "Chalk\nPebble Time Round\n\nScreen\n180 x 180 px\n"
     "\nShape\nRound\n\nColor\n64-color\n"
-    "\nHealth\nSteps, Sleep,\nHR, Calories");
+    "\nHealth\nSteps, Sleep,\nCalories (no HR)");
 #elif defined(PBL_PLATFORM_DIORITE)
   snprintf(info,sizeof(info),
     "Diorite\nPebble 2\n\nScreen\n144 x 168 px\n"
     "\nShape\nRectangle\n\nColor\nBlack & White\n"
-    "\nHealth\nSteps, Sleep,\nHR, Calories");
+    "\nHealth\nSteps, Sleep,\nCalories, HR\n"
+    "(not SE model)");
 #elif defined(PBL_PLATFORM_APLITE)
   snprintf(info,sizeof(info),
     "Aplite\nPebble Classic / Steel\n\nScreen\n144 x 168 px\n"
@@ -523,7 +533,7 @@ static void platform_window_load(Window *window) {
   snprintf(info,sizeof(info),
     "Gabbro\nPebble Round 2\n\nScreen\n260 x 260 px\n"
     "\nShape\nRound\n\nColor\n64-color\n"
-    "\nHealth\nSteps, Sleep,\nHR, Calories\n"
+    "\nHealth\nSteps, Sleep,\nCalories, HR\n"
     "\n* LECO 60 only on\n  Emery / Gabbro");
 #else
   snprintf(info,sizeof(info),"Unknown platform");

@@ -188,9 +188,6 @@ static bool color_is_light(const SamplerColor *c) {
 // Full-width black bg layer + inset single-line TextLayer.
 // UP/DOWN: scroll within page, then advance font at boundaries.
 // ============================================================
-// Header height = safe-zone offset + one text line (14px) + 2px breathing room.
-// The text is positioned at (ROUND_TOP_PAD - 2) so it sits 2px higher than
-// the exact bottom of the safe zone, matching the visual weight of rect.
 #if defined(PBL_ROUND)
 #  define FONT_HDR_H     (ROUND_TOP_PAD + 12)
 #  define FONT_HDR_TXT_Y (ROUND_TOP_PAD - 2)
@@ -293,12 +290,10 @@ static void font_detail_load(Window *window) {
   GRect  b    = layer_get_bounds(root);
   int    w = b.size.w, h = b.size.h;
 
-  // Full-width black bg covers corners on round screens
   s_font_header_bg = layer_create(GRect(0, 0, w, FONT_HDR_H));
   layer_set_update_proc(s_font_header_bg, font_header_bg_draw);
   layer_add_child(root, s_font_header_bg);
 
-  // Single-line label, inset on round, 2px up from safe-zone bottom
   int txt_x = ROUND_INSET + 2;
   int txt_w = w - 2 * (ROUND_INSET + 2);
   int txt_y = FONT_HDR_TXT_Y;
@@ -338,7 +333,7 @@ static void font_detail_unload(Window *window) {
 }
 
 // ============================================================
-// FONT LIST  (Gothic 14 rows to match color list density)
+// FONT LIST  (Gothic 14, 34px rows to match color list)
 // ============================================================
 static uint16_t font_menu_num_rows(MenuLayer *ml,uint16_t s,void *c){return(uint16_t)NUM_FONTS;}
 static int16_t  font_menu_cell_h(MenuLayer *ml,MenuIndex *i,void *c){return 34;}
@@ -483,15 +478,17 @@ static void color_window_unload(Window *w){menu_layer_destroy(s_color_menu);}
 
 // ============================================================
 // PLATFORM WINDOW
-// Source: developer.rebble.io/guides/tools-and-resources/hardware-information/
-// Health capabilities per platform:
-//   Aplite  (Classic/Steel):   no health
-//   Basalt  (Time/Steel):      steps, sleep, calories  -- NO HR
-//   Chalk   (Time Round):      steps, sleep, calories  -- NO HR
-//   Diorite (Pebble 2):        steps, sleep, calories, HR (not SE model)
-//   Flint   (Pebble 2 Duo):    steps, sleep, calories  -- NO HR
-//   Emery   (Time 2):          steps, sleep, calories, HR
-//   Gabbro  (Round 2):         steps, sleep, calories, HR
+// Health capabilities sourced from:
+//   developer.rebble.io/guides/tools-and-resources/hardware-information/
+//   pebble-help-legacy.rebble.io (HR article explicitly excludes Time/Time Steel/Time Round)
+//
+// Aplite  (Classic/Steel):  no health API
+// Basalt  (Time/Steel):     steps, sleep, calories  -- no HR
+// Chalk   (Time Round):     steps, sleep, calories  -- no HR
+// Diorite (Pebble 2):       steps, sleep, calories, HR  (not SE model)
+// Flint   (Pebble 2 Duo):   steps, sleep, calories  -- no HR
+// Emery   (Time 2):         steps, sleep, calories, HR
+// Gabbro  (Round 2):        steps, sleep  -- no HR, no calories confirmed
 // ============================================================
 static void platform_window_load(Window *window) {
   Layer *root  = window_get_root_layer(window);
@@ -533,7 +530,7 @@ static void platform_window_load(Window *window) {
   snprintf(info,sizeof(info),
     "Gabbro\nPebble Round 2\n\nScreen\n260 x 260 px\n"
     "\nShape\nRound\n\nColor\n64-color\n"
-    "\nHealth\nSteps, Sleep,\nCalories, HR\n"
+    "\nHealth\nSteps, Sleep\n(no HR)\n"
     "\n* LECO 60 only on\n  Emery / Gabbro");
 #else
   snprintf(info,sizeof(info),"Unknown platform");

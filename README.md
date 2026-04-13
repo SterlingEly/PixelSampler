@@ -24,15 +24,15 @@ sensor capabilities.
 
 All 7 Pebble platforms supported:
 
-| Platform | Model              | Screen     | Shape | Color    | Health / HR          |
-|----------|--------------------|------------|-------|----------|----------------------|
-| aplite   | Classic / Steel    | 144×168    | Rect  | B&W      | None                 |
-| basalt   | Time / Time Steel  | 144×168    | Rect  | 64-color | Steps/Sleep/Cal      |
-| chalk    | Time Round         | 180×180    | Round | 64-color | Steps/Sleep/Cal      |
-| diorite  | Pebble 2           | 144×168    | Rect  | B&W      | Steps/Sleep/Cal + HR |
-| flint    | Pebble 2 Duo       | 144×168    | Rect  | B&W      | Steps/Sleep/Cal      |
-| emery    | Pebble Time 2      | 200×228    | Rect  | 64-color | Steps/Sleep/Cal + HR |
-| gabbro   | Pebble Round 2     | 260×260    | Round | 64-color | Steps/Sleep only     |
+| Platform | Model              | Screen     | Shape | Color    | Touch | Health / HR          |
+|----------|--------------------|------------|-------|----------|-------|----------------------|
+| aplite   | Classic / Steel    | 144×168    | Rect  | B&W      | No    | None                 |
+| basalt   | Time / Time Steel  | 144×168    | Rect  | 64-color | No    | Steps/Sleep/Cal      |
+| chalk    | Time Round         | 180×180    | Round | 64-color | No    | Steps/Sleep/Cal      |
+| diorite  | Pebble 2           | 144×168    | Rect  | B&W      | No    | Steps/Sleep/Cal + HR |
+| flint    | Pebble 2 Duo       | 144×168    | Rect  | B&W      | No    | Steps/Sleep/Cal      |
+| emery    | Pebble Time 2      | 200×228    | Rect  | 64-color | Yes   | Steps/Sleep/Cal + HR |
+| gabbro   | Pebble Round 2     | 260×260    | Round | 64-color | No    | Steps/Sleep only     |
 
 LECO 60 fonts are only available on emery and gabbro.
 

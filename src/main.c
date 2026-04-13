@@ -188,9 +188,12 @@ static bool color_is_light(const SamplerColor *c) {
 // Full-width black bg layer + inset single-line TextLayer.
 // UP/DOWN: scroll within page, then advance font at boundaries.
 // ============================================================
+// FONT_HDR_TXT_Y: top of text rect within the header strip.
+// Subtract 4 (not 2) because Gothic 14 has ~2px internal top leading,
+// so -4 from the rect origin produces a visible ~2px upward shift.
 #if defined(PBL_ROUND)
 #  define FONT_HDR_H     (ROUND_TOP_PAD + 12)
-#  define FONT_HDR_TXT_Y (ROUND_TOP_PAD - 2)
+#  define FONT_HDR_TXT_Y (ROUND_TOP_PAD - 4)
 #else
 #  define FONT_HDR_H     20
 #  define FONT_HDR_TXT_Y 3
@@ -480,7 +483,8 @@ static void color_window_unload(Window *w){menu_layer_destroy(s_color_menu);}
 // PLATFORM WINDOW
 // Health capabilities sourced from:
 //   developer.rebble.io/guides/tools-and-resources/hardware-information/
-//   pebble-help-legacy.rebble.io (HR article explicitly excludes Time/Time Steel/Time Round)
+//   pebble-help-legacy.rebble.io (HR article explicitly excludes
+//   Time, Time Steel, and Time Round)
 //
 // Aplite  (Classic/Steel):  no health API
 // Basalt  (Time/Steel):     steps, sleep, calories  -- no HR
@@ -488,7 +492,7 @@ static void color_window_unload(Window *w){menu_layer_destroy(s_color_menu);}
 // Diorite (Pebble 2):       steps, sleep, calories, HR  (not SE model)
 // Flint   (Pebble 2 Duo):   steps, sleep, calories  -- no HR
 // Emery   (Time 2):         steps, sleep, calories, HR
-// Gabbro  (Round 2):        steps, sleep  -- no HR, no calories confirmed
+// Gabbro  (Round 2):        steps, sleep only  -- no HR
 // ============================================================
 static void platform_window_load(Window *window) {
   Layer *root  = window_get_root_layer(window);

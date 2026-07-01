@@ -3,6 +3,9 @@
 A developer reference app for Pebble. Browse all system fonts, the full
 64-color palette, and hardware platform details — all on your wrist.
 
+> **Contributors & AI collaborators:** See [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md)
+> for the full implementation reference before making any code changes.
+
 ## Features
 
 **Fonts** — Scrollable list of all system fonts by name. Select any font

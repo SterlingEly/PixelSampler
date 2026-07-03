@@ -192,23 +192,25 @@ Both use `FONT_LINE_EXTRA = 4` added to each line's draw rect for descender clea
 
 Verified against Rebble developer docs and multiple CES 2026 reviews.
 
-| Platform | Model              | Screen  | Shape | Color    | Touch  | HR    | Health           |
-|----------|--------------------|---------|-------|----------|--------|-------|------------------|
-| aplite   | Classic / Steel    | 144×168 | Rect  | B&W      | No     | No    | None             |
-| basalt   | Time / Time Steel  | 144×168 | Rect  | 64-color | No     | No    | Steps/Sleep/Cal  |
-| chalk    | Time Round         | 180×180 | Round | 64-color | No     | No    | Steps/Sleep/Cal  |
-| diorite  | Pebble 2           | 144×168 | Rect  | B&W      | No     | Yes†  | Steps/Sleep/Cal  |
-| flint    | Pebble 2 Duo       | 144×168 | Rect  | B&W      | No     | No    | Steps/Sleep/Cal  |
-| emery    | Pebble Time 2      | 200×228 | Rect  | 64-color | Yes    | Yes   | Steps/Sleep/Cal  |
-| gabbro   | Pebble Round 2     | 260×260 | Round | 64-color | Yes‡   | No    | Steps/Sleep only |
+| Platform | Model              | Screen  | Shape | Color    | Touch | HR    | Health           |
+|----------|--------------------|---------|-------|----------|-------|-------|------------------|
+| aplite   | Classic / Steel    | 144×168 | Rect  | B&W      | No    | No    | None             |
+| basalt   | Time / Time Steel  | 144×168 | Rect  | 64-color | No    | No    | Steps/Sleep/Cal  |
+| chalk    | Time Round         | 180×180 | Round | 64-color | No    | No    | Steps/Sleep/Cal  |
+| diorite  | Pebble 2           | 144×168 | Rect  | B&W      | No    | Yes†  | Steps/Sleep/Cal  |
+| flint    | Pebble 2 Duo       | 144×168 | Rect  | B&W      | No    | No    | Steps/Sleep/Cal  |
+| emery    | Pebble Time 2      | 200×228 | Rect  | 64-color | Yes   | Yes   | Steps/Sleep/Cal  |
+| gabbro   | Pebble Round 2     | 260×260 | Round | 64-color | Yes‡  | No    | Steps/Sleep•     |
 
 † Diorite HR: not available on the SE model.  
 Basalt / chalk / Time Steel: HR was smartstrap-only, never built-in.  
-‡ Gabbro touch: confirmed in multiple CES 2026 reviews; one source describes it as
-"four physical buttons (plus an optional touchscreen)" — whether touch is universal
-across all units or a variant is not yet fully clear. Buttons remain the primary input.  
-Gabbro health: official specs list steps and sleep only — no calories, no HR.
-This appears intentional (not an omission) based on Core Devices press materials.
+‡ Gabbro touch: confirmed present but secondary. PebbleOS is buttons-first on all
+platforms; the touchscreen is a supplementary input layer available to developers
+and can be disabled in settings. Same model as emery. Not a replacement for
+button-based navigation.  
+• Gabbro calories: not listed in official Core Devices specs or press materials.
+Whether the SDK exposes calories for gabbro is unconfirmed pending device availability
+(shipping July 2026). Steps and sleep are confirmed.
 
 ---
 
@@ -243,6 +245,7 @@ This appears intentional (not an omission) based on Core Devices press materials
 - Show raw `0b11rrggbb` ARGB byte on color detail screen
 - Color name search / filter
 - Hex code lookup — enter a hex value, find the closest GColor
+- Revisit gabbro health display once device ships (July 2026) — confirm calories
 
 ---
 
@@ -297,5 +300,5 @@ Artistic digit watchface for gabbro (Round 2); shares gabbro geometry constants.
 ## Last Updated
 
 April 2026 — v1.0 ship + documentation standardization pass.
-Gabbro health/touch facts updated from CES 2026 review sources.
+Gabbro hardware facts refined: touch confirmed secondary, calories unconfirmed pending device.
 Updated by AI collaborator (Claude, Anthropic) with direction from Sterling Ely.

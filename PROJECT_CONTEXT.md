@@ -171,10 +171,10 @@ Both use `FONT_LINE_EXTRA = 4` added to each line's draw rect for descender clea
 #define FONT_LINE_EXTRA  4   // MUST match between draw and compute functions
 
 // Round-screen geometry
-// chalk  (Pebble Time Round,  180×180px diameter)
+// chalk  (Pebble Time Round,  180×180px)
 #define ROUND_INSET    30    // safe horizontal zone (narrowest chord near poles)
 #define ROUND_TOP_PAD  26    // vertical offset to clear circle top
-// gabbro (Pebble Round 2,    260×260px diameter)
+// gabbro (Pebble Round 2,    260×260px)
 #define ROUND_INSET    40
 #define ROUND_TOP_PAD  36
 // rect platforms
@@ -190,21 +190,25 @@ Both use `FONT_LINE_EXTRA = 4` added to each line's draw rect for descender clea
 
 ## Platform Hardware Reference *(Stable)*
 
-Verified against Rebble developer docs and legacy Pebble support articles.
+Verified against Rebble developer docs and multiple CES 2026 reviews.
 
-| Platform | Model              | Screen  | Shape | Color    | Touch | HR    | Health           |
-|----------|--------------------|---------|-------|----------|-------|-------|------------------|
-| aplite   | Classic / Steel    | 144×168 | Rect  | B&W      | No    | No    | None             |
-| basalt   | Time / Time Steel  | 144×168 | Rect  | 64-color | No    | No    | Steps/Sleep/Cal  |
-| chalk    | Time Round         | 180×180 | Round | 64-color | No    | No    | Steps/Sleep/Cal  |
-| diorite  | Pebble 2           | 144×168 | Rect  | B&W      | No    | Yes†  | Steps/Sleep/Cal  |
-| flint    | Pebble 2 Duo       | 144×168 | Rect  | B&W      | No    | No    | Steps/Sleep/Cal  |
-| emery    | Pebble Time 2      | 200×228 | Rect  | 64-color | Yes   | Yes   | Steps/Sleep/Cal  |
-| gabbro   | Pebble Round 2     | 260×260 | Round | 64-color | No    | No    | Steps/Sleep‡     |
+| Platform | Model              | Screen  | Shape | Color    | Touch  | HR    | Health           |
+|----------|--------------------|---------|-------|----------|--------|-------|------------------|
+| aplite   | Classic / Steel    | 144×168 | Rect  | B&W      | No     | No    | None             |
+| basalt   | Time / Time Steel  | 144×168 | Rect  | 64-color | No     | No    | Steps/Sleep/Cal  |
+| chalk    | Time Round         | 180×180 | Round | 64-color | No     | No    | Steps/Sleep/Cal  |
+| diorite  | Pebble 2           | 144×168 | Rect  | B&W      | No     | Yes†  | Steps/Sleep/Cal  |
+| flint    | Pebble 2 Duo       | 144×168 | Rect  | B&W      | No     | No    | Steps/Sleep/Cal  |
+| emery    | Pebble Time 2      | 200×228 | Rect  | 64-color | Yes    | Yes   | Steps/Sleep/Cal  |
+| gabbro   | Pebble Round 2     | 260×260 | Round | 64-color | Yes‡   | No    | Steps/Sleep only |
 
 † Diorite HR: not available on the SE model.  
 Basalt / chalk / Time Steel: HR was smartstrap-only, never built-in.  
-‡ Gabbro: steps and sleep confirmed; calories unconfirmed as of v1.0.
+‡ Gabbro touch: confirmed in multiple CES 2026 reviews; one source describes it as
+"four physical buttons (plus an optional touchscreen)" — whether touch is universal
+across all units or a variant is not yet fully clear. Buttons remain the primary input.  
+Gabbro health: official specs list steps and sleep only — no calories, no HR.
+This appears intentional (not an omission) based on Core Devices press materials.
 
 ---
 
@@ -263,11 +267,11 @@ Before any future release, test on at minimum:
 
 **TallBoy**  
 https://github.com/SterlingEly/TallBoy  
-Digit-column watchface with pace-based background color; shares Pebble SDK patterns and round-screen geometry solutions.
+Digit-column watchface; shares Pebble SDK patterns and round-screen geometry solutions.
 
 **Radium 2**  
 https://github.com/SterlingEly/Radium2  
-Radial bar graph watchface with color theming; the 64-color palette in Pixel Sampler directly supports Radium 2 color selection.
+Radial bar graph watchface; the 64-color palette in Pixel Sampler directly supports Radium 2 color selection.
 
 **Bar Graph 2**  
 https://github.com/SterlingEly/BarGraph2  
@@ -275,11 +279,7 @@ Modernized bar graph watchface; shares platform and health capability constants.
 
 **Monogram**  
 https://github.com/SterlingEly/Monogram  
-Artistic digit-column watchface for gabbro (Round 2); shares gabbro geometry constants.
-
-**Pixel Sampler**  
-https://github.com/SterlingEly/PixelSampler  
-*This repository.*
+Artistic digit watchface for gabbro (Round 2); shares gabbro geometry constants.
 
 ---
 
@@ -296,5 +296,6 @@ https://github.com/SterlingEly/PixelSampler
 
 ## Last Updated
 
-April 2026 — v1.0 ship + documentation standardization pass.  
+April 2026 — v1.0 ship + documentation standardization pass.
+Gabbro health/touch facts updated from CES 2026 review sources.
 Updated by AI collaborator (Claude, Anthropic) with direction from Sterling Ely.

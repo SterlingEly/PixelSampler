@@ -66,7 +66,6 @@ PixelSampler/
   PROJECT_CONTEXT.md      — this file: implementation reference
   CHANGELOG.md            — version history (technical)
   STORE_LISTING.md        — store description copy
-  CONTEXT_PIXELSAMPLER.md — deprecated stub, redirects here
 ```
 
 ---

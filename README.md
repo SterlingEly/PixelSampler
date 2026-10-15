@@ -49,7 +49,7 @@ All 7 Pebble platforms supported:
 | diorite  | Pebble 2           | 144×168 | Rect  | B&W      | No    | Steps/Sleep/Cal + HR |
 | flint    | Pebble 2 Duo       | 144×168 | Rect  | B&W      | No    | Steps/Sleep/Cal      |
 | emery    | Pebble Time 2      | 200×228 | Rect  | 64-color | Yes   | Steps/Sleep/Cal + HR |
-| gabbro   | Pebble Round 2     | 260×260 | Round | 64-color | No    | Steps/Sleep only     |
+| gabbro   | Pebble Round 2     | 260×260 | Round | 64-color | Yes   | Steps/Sleep only     |
 
 LECO 60 fonts are only available on emery and gabbro.
 

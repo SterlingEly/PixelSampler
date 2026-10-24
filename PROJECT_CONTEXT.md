@@ -281,7 +281,7 @@ Modernized bar graph watchface; shares platform and health capability constants.
 
 **Monogram**  
 https://github.com/SterlingEly/Monogram  
-Artistic digit watchface for gabbro (Round 2); shares gabbro geometry constants.
+Artistic digit watchface concept for gabbro (Round 2). **Shelved 2026-10-24** — TallBoy on round covers about 90% of its intent; repo kept.
 
 ---
 
@@ -298,6 +298,7 @@ Artistic digit watchface for gabbro (Round 2); shares gabbro geometry constants.
 
 ## Last Updated
 
+October 2026 — Monogram marked shelved in Related Projects (2026-10-24); no code change.
 April 2026 — v1.0 ship + documentation standardization pass.
 Gabbro hardware facts refined: touch confirmed secondary, calories unconfirmed pending device.
 Updated by AI collaborator (Claude, Anthropic) with direction from Sterling Ely.

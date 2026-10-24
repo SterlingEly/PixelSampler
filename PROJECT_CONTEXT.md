@@ -35,6 +35,7 @@ favour information density and navigational speed over visual polish.
 - **Contest:** Entered in Spring 2026 Pebble App Contest
 - **Branch:** `main` — stable, no open PRs
 - **Next milestone:** v1.1 — scope not yet defined (see [Current TODO](#current-todo))
+- **Store listing file:** `STORE_LISTING.md` is the v1.0 listing as published (older format: Title / Tagline / Description / Category / Keywords / Changelog). It is now an update-draft file by convention; when v1.1 is drafted, restructure it on the live Radium 2 repebble listing (https://apps.repebble.com/radium-2_69a6531826cc4f0009c65926).
 
 ---
 
@@ -281,7 +282,7 @@ Modernized bar graph watchface; shares platform and health capability constants.
 
 **Monogram**  
 https://github.com/SterlingEly/Monogram  
-Artistic digit watchface concept for gabbro (Round 2). **Shelved 2026-10-24** — TallBoy on round covers about 90% of its intent; repo kept.
+Artistic digit watchface concept for gabbro (Round 2). **Deferred 2026-10-24** — TallBoy on round covers about 90% of its intent; repo kept; revival only by branching off TallBoy.
 
 ---
 
@@ -298,7 +299,7 @@ Artistic digit watchface concept for gabbro (Round 2). **Shelved 2026-10-24** �
 
 ## Last Updated
 
-October 2026 — Monogram marked shelved in Related Projects (2026-10-24); no code change.
+October 2026 — Monogram status term standardized to "deferred" (2026-10-24; was "shelved"); store-listing convention noted in Current Status. No code change.
 April 2026 — v1.0 ship + documentation standardization pass.
 Gabbro hardware facts refined: touch confirmed secondary, calories unconfirmed pending device.
 Updated by AI collaborator (Claude, Anthropic) with direction from Sterling Ely.
